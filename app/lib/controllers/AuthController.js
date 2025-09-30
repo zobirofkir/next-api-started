@@ -2,12 +2,14 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import AuthResource from '../resources/AuthResource.js';
+import connectDB from '../db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 export class AuthController {
   static async register(req, res) {
     try {
+      await connectDB();
       const { name, email, password } = req.body;
       
       const existingUser = await User.findOne({ email });
@@ -28,6 +30,7 @@ export class AuthController {
 
   static async login(req, res) {
     try {
+      await connectDB();
       const { email, password } = req.body;
       
       const user = await User.findOne({ email });
