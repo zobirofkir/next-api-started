@@ -30,6 +30,15 @@ class UserController extends BaseController {
         return UserResource.make(user).toArray();
     }
 
+    /**
+     * Update the User
+     */
+    static update(id , userData) 
+    {
+        const user = this.withConnection(() => User.findByIdAndUpdate(id, userData, { new: true }));
+        return UserResource.make(user).toArray();
+    }
+
 }
 
 export default UserController;
