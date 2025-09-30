@@ -12,6 +12,15 @@ class SportController extends BaseController
         const sports = await this.withConnection(() => Sport.find());
         return SportResource.collection(sports).toArray();
     }
+
+    /**
+     * Store Sport
+     */
+    static async store(sportData) 
+    {
+        const sport = await this.withConnection(() => Sport.create(sportData));
+        return SportResource.make(sport).toArray();
+    }
 }
 
 export default SportController;
