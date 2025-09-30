@@ -1,5 +1,6 @@
 import BaseController from "./BaseController";
 import User from "@/app/lib/models/User";
+import UserResource from "@/app/lib/resources/UserResource";
 
 class UserController extends BaseController {
     /**
@@ -7,7 +8,8 @@ class UserController extends BaseController {
      */
     static async index() 
     {
-        return await this.withConnection(() => User.find());
+        const users = await this.withConnection(() => User.find());
+        return UserResource.collection(users).toArray();
     }
 
     /**
@@ -15,7 +17,8 @@ class UserController extends BaseController {
      */
     static async show(id)
     {
-        return await this.withConnection(() => User.findById(id));
+        const user = await this.withConnection(() => User.findById(id));
+        return UserResource.make(user).toArray();
     }
 
     /**
@@ -23,7 +26,8 @@ class UserController extends BaseController {
      */
     static async store(userData)
     {
-        return await this.withConnection(() => User.create(userData));
+        const user = await this.withConnection(() => User.create(userData));
+        return UserResource.make(user).toArray();
     }
 
 }
