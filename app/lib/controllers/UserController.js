@@ -33,9 +33,9 @@ class UserController extends BaseController {
     /**
      * Update the User
      */
-    static update(id , userData) 
+    static async update(id , userData) 
     {
-        const user = this.withConnection(() => User.findByIdAndUpdate(id, userData, { new: true }));
+        const user = await this.withConnection(() => User.findByIdAndUpdate(id, userData, { new: true }));
         return UserResource.make(user).toArray();
     }
 
