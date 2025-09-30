@@ -4,7 +4,7 @@ import User from '../models/User.js';
 import AuthResource from '../resources/AuthResource.js';
 import connectDB from '../db.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export class AuthController {
   static async register(req, res) {
