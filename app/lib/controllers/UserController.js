@@ -18,6 +18,14 @@ class UserController extends BaseController {
         return await this.withConnection(() => User.findById(id));
     }
 
+    /**
+     * Store a new user
+     */
+    static async store(userData)
+    {
+        return await this.withConnection(() => User.create(userData));
+    }
+
 }
 
 export default UserController;
