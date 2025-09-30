@@ -2,14 +2,14 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import AuthResource from '../resources/AuthResource.js';
-import connectDB from '../db.js';
+import BaseController from './BaseController.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-export class AuthController {
+export class AuthController extends BaseController {
   static async register(req, res) {
     try {
-      await connectDB();
+      await this.withConnection;
       const { name, email, password } = req.body;
       
       const existingUser = await User.findOne({ email });
@@ -21,7 +21,7 @@ export class AuthController {
       const user = await User.create({ name, email, password: hashedPassword });
       
       res.status(201).json({ 
-        user: new AuthResource(user).toArray()
+        user: user
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
