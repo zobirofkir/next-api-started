@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import AuthResource from '../resources/AuthResource.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -17,11 +18,8 @@ export class AuthController {
       const hashedPassword = await bcrypt.hash(password, 10);
       const user = await User.create({ name, email, password: hashedPassword });
       
-      const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
-      
       res.status(201).json({ 
-        token, 
-        user: { id: user._id, name: user.name, email: user.email } 
+        user: new AuthResource(user).toArray()
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -41,7 +39,7 @@ export class AuthController {
       
       res.json({ 
         token, 
-        user: { id: user._id, name: user.name, email: user.email } 
+        user: new AuthResource(user).toArray()
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
