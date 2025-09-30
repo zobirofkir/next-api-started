@@ -1,10 +1,9 @@
-import connect from "@/app/lib/db";
+import BaseController from "./BaseController";
 import User from "@/app/lib/models/User";
 
-class UserController {
+class UserController extends BaseController {
     static async index() {
-        await connect();
-        return await User.find();
+        return await this.withConnection(() => User.find());
     }
 }
 
