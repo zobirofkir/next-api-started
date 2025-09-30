@@ -39,6 +39,13 @@ class UserController extends BaseController {
         return UserResource.make(user).toArray();
     }
 
+    /**
+     * Delete the User
+     */
+    static async delete(id)
+    {
+        return await this.withConnection(() => User.findByIdAndDelete(id));
+    }
 }
 
 export default UserController;

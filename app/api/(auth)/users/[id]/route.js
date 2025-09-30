@@ -9,3 +9,7 @@ export const PUT = async (request, { params }) => {
     const userData = await request.json();
     return NextResponse.json(await UserController.update(params.id, userData));
 }
+
+export const DELETE = async (request , {params}) => {
+    return NextResponse.json(await UserController.delete(params.id));
+}
