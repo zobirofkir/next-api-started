@@ -12,7 +12,22 @@ export class AuthController extends BaseController {
    */
   static async register(req, res) {
     try {
-      const { name, email, password } = req.body;
+      if (!req || !req.body || typeof req.body !== 'object') {
+        return res.status(400).json({ error: 'Invalid request body' });
+      }
+
+      let { name, email, password } = req.body;
+
+      name = typeof name === 'string' ? name.trim() : '';
+      email = typeof email === 'string' ? email.trim().toLowerCase() : '';
+      password = typeof password === 'string' ? password : '';
+
+      if (!name || !email || !password) {
+        return res.status(422).json({ error: 'Name, email and password are required' });
+      }
+      if (password.length < 6) {
+        return res.status(422).json({ error: 'Password must be at least 6 characters' });
+      }
 
       const existingUser = await this.withConnection(() =>
         User.findOne({ email })
@@ -41,7 +56,17 @@ export class AuthController extends BaseController {
    */
   static async login(req, res) {
     try {
-      const { email, password } = req.body;
+      if (!req || !req.body || typeof req.body !== 'object') {
+        return res.status(400).json({ error: 'Invalid request body' });
+      }
+
+      let { email, password } = req.body;
+      email = typeof email === 'string' ? email.trim().toLowerCase() : '';
+      password = typeof password === 'string' ? password : '';
+
+      if (!email || !password) {
+        return res.status(422).json({ error: 'Email and password are required' });
+      }
 
       const user = await this.withConnection(() =>
         User.findOne({ email })
@@ -49,6 +74,10 @@ export class AuthController extends BaseController {
 
       if (!user || !(await bcrypt.compare(password, user.password))) {
         return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      if (!JWT_SECRET) {
+        return res.status(500).json({ error: 'Server misconfiguration: missing JWT_SECRET' });
       }
 
       const token = jwt.sign({ userId: user._id }, JWT_SECRET, {

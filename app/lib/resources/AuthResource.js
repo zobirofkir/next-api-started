@@ -1,4 +1,4 @@
-import Resource from './Resource';
+import Resource from './Resource.js';
 
 class AuthResource extends Resource {
     toArray() {
