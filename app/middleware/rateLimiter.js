@@ -1,25 +1,33 @@
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 
-// Rate limiting configuration
+/**
+ * Rate limiter configuration options
+ * @type {Object}
+ * @property {number} points - Maximum number of points (requests) that can be consumed
+ * @property {number} duration - Time window in seconds for rate limiting
+ * @property {number} blockDuration - Duration in seconds to block after all points are consumed
+ */
 const rateLimiterOptions = {
-  // 5 failed login attempts per IP per 15 minutes
   points: 5,
-  duration: 15 * 60, // 15 minutes in seconds
-  blockDuration: 15 * 60, // Block for 15 minutes after all points are consumed
+  duration: 15 * 60,
+  blockDuration: 15 * 60,
 };
 
 const rateLimiter = new RateLimiterMemory(rateLimiterOptions);
 
+/**
+ * Rate limiter middleware for API endpoints
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {void|Object} - Either passes to next middleware or returns error response
+ */
 const rateLimiterMiddleware = (req, res, next) => {
-  // Use IP address as the key for rate limiting
   const key = req.ip;
   
-  rateLimiter.consume(key, 1) // consume 1 point per request
-    .then(() => {
-      next();
-    })
+  rateLimiter.consume(key, 1)
+    .then(() => next())
     .catch((rejRes) => {
-      // Calculate remaining time in seconds
       const secs = Math.ceil(rejRes.msBeforeNext / 1000) || 1;
       res.set('Retry-After', String(secs));
       
