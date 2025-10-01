@@ -1,13 +1,10 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
-import AuthResource from '../resources/AuthResource.js';
 import BaseController from './BaseController.js';
 import RegisterRequest from '../requests/RegisterRequest.js';
 import LoginRequest from '../requests/LoginRequest.js';
 import UpdateMeRequest from '../requests/UpdateMeRequest.js';
+import AuthService from '../services/AuthService.js';
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const authService = new AuthService();
 
 export class AuthController extends BaseController {
   /**
@@ -24,37 +21,17 @@ export class AuthController extends BaseController {
         });
       }
 
-      const { name, email, password } = request.validated();
-
-      const existingUser = await this.withConnection(() =>
-        User.findOne({ email })
-      );
-
-      if (existingUser) {
-        return res.status(409).json({
-          success: false,
-          error: 'Email already registered',
-          message: 'An account with this email already exists. Please use a different email or try logging in.'
-        });
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      const user = await this.withConnection(() =>
-        User.create({ name, email, password: hashedPassword })
-      );
-
-      return res.status(201).json({
-        success: true,
-        resource: new AuthResource(user).toArray(),
-      });
+      const result = await authService.registerUser(request.validated());
+      return res.status(201).json(result);
     } catch (error) {
       console.error('Registration error:', error);
-      return res.status(500).json({
-        success: false,
-        error: 'Internal server error',
-        message: 'An error occurred while processing your registration. Please try again later.'
-      });
+      return res.status(error.status || 500).json(
+        error.details || {
+          success: false,
+          error: 'Internal server error',
+          message: 'An error occurred while processing your registration. Please try again later.'
+        }
+      );
     }
   }
 
@@ -73,47 +50,16 @@ export class AuthController extends BaseController {
       }
 
       const { email, password } = request.validated();
-
-      const user = await this.withConnection(() =>
-        User.findOne({ email }).select('+password')
-      );
-
-      if (!user) {
-        return res.status(401).json({
-          success: false,
-          error: 'Authentication failed',
-          message: 'No account found with this email. Please check your email or register for a new account.'
-        });
-      }
-
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if (!isPasswordValid) {
-        return res.status(401).json({
-          success: false,
-          error: 'Authentication failed',
-          message: 'Incorrect password. Please try again.'
-        });
-      }
-
-      if (!JWT_SECRET) {
-        console.error('JWT_SECRET is not configured');
-        return res.status(500).json({
-          success: false,
-          error: 'Server configuration error',
-          message: 'An internal server error occurred. Please try again later.'
-        });
-      }
-
-      const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
-        expiresIn: '7d',
-      });
-
-      return res.json({
-        success: true,
-        resource: { token, user: new AuthResource(user).toArray() },
-      });
+      const result = await authService.loginUser(email, password);
+      return res.json(result);
     } catch (error) {
-      return res.status(500).json({ success: false });
+      return res.status(error.status || 500).json(
+        error.details || {
+          success: false,
+          error: 'Authentication failed',
+          message: 'An error occurred during login. Please try again.'
+        }
+      );
     }
   }
 
