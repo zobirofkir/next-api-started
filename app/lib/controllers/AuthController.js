@@ -7,9 +7,23 @@ import AuthResource from '../resources/AuthResource.js';
 
 const authService = new AuthService();
 
+/**
+ * Controller handling authentication-related operations including
+ * user registration, login, logout, and profile management.
+ * 
+ * @class AuthController
+ * @extends {BaseController}
+ */
 export class AuthController extends BaseController {
   /**
-   * Register a new user
+   * Registers a new user with the provided information.
+   * 
+   * @static
+   * @async
+   * @param {Object} req - Express request object containing user registration data
+   * @param {Object} res - Express response object
+   * @returns {Promise<Object>} Response with registration result or error details
+   * @throws {Error} If registration fails due to server error
    */
   static async register(req, res) {
     try {
@@ -37,7 +51,15 @@ export class AuthController extends BaseController {
   }
 
   /**
-   * Login user and return token
+   * Authenticates a user and returns an access token upon successful login.
+   * 
+   * @static
+   * @async
+   * @param {Object} req - Express request object containing login credentials
+   * @param {string} req.body.email - User's email address
+   * @param {string} req.body.password - User's password
+   * @param {Object} res - Express response object
+   * @returns {Promise<Object>} Response with authentication token or error details
    */
   static async login(req, res) {
     try {
@@ -64,7 +86,15 @@ export class AuthController extends BaseController {
   }
 
   /**
-   * Logout user
+   * Logs out the currently authenticated user by revoking their access token.
+   * 
+   * @static
+   * @async
+   * @param {Object} req - Express request object containing authentication token
+   * @param {string} req.token - JWT token to be revoked
+   * @param {Object} req.payload - Decoded JWT payload
+   * @param {Object} res - Express response object
+   * @returns {Promise<Object>} Success response or error details
    */
   static async logout(req, res) {
     try {
@@ -80,7 +110,14 @@ export class AuthController extends BaseController {
   }
 
   /**
-   * Get current authenticated user
+   * Retrieves the profile information of the currently authenticated user.
+   * 
+   * @static
+   * @async
+   * @param {Object} req - Express request object
+   * @param {Object} req.user - Authenticated user object
+   * @param {Object} res - Express response object
+   * @returns {Promise<Object>} User profile data or error response
    */
   static async me(req, res) {
     try {
@@ -92,7 +129,6 @@ export class AuthController extends BaseController {
         });
       }
       
-      // Ensure user data is a plain object
       const userData = req.user.toObject ? req.user.toObject() : req.user;
       
       return res.json({ 
@@ -111,7 +147,16 @@ export class AuthController extends BaseController {
   }
 
   /**
-   * Update current authenticated user
+   * Updates the profile information of the currently authenticated user.
+   * 
+   * @static
+   * @async
+   * @param {Object} req - Express request object
+   * @param {Object} req.user - Authenticated user object
+   * @param {string} req.user._id - User ID
+   * @param {Object} req.body - Updated user data
+   * @param {Object} res - Express response object
+   * @returns {Promise<Object>} Updated user profile or error response
    */
   static async updateMe(req, res) {
     try {
