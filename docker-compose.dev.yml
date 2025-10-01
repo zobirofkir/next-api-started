@@ -10,7 +10,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=development
-      - MONGODB_URI=mongodb://admin:password@mongodb:27017/university?authSource=admin
+      - MONGODB_URI=mongodb+srv://pixcoders20_db_user:rFeU4L6mWAQy0AFl@cluster0.so1prz8.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
       - HOSTNAME=0.0.0.0
       - PORT=3000
     volumes:
