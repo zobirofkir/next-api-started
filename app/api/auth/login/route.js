@@ -2,12 +2,15 @@ import { AuthController } from "@/app/lib/controllers/AuthController";
 import { NextResponse } from "next/server";
 import rateLimiter from "@/app/middleware/rateLimiter";
 
-// Create a wrapper to handle the rate limiter with Next.js App Router
+/**
+ * Handles POST requests to the login endpoint
+ * @param {Request} request - The incoming HTTP request
+ * @returns {Promise<NextResponse>} A promise that resolves to a NextResponse object
+ */
 export const POST = async (request) => {
     const forwarded = request.headers.get('x-forwarded-for');
     const ip = forwarded ? forwarded.split(/, /)[0] : '127.0.0.1';
     
-    // Create a mock response object for the rate limiter
     const rateLimitRes = {
         setHeader: () => {},
         status: (code) => ({
@@ -18,7 +21,6 @@ export const POST = async (request) => {
         })
     };
 
-    // Create a wrapper function that will handle the rate limiter's next() call
     return new Promise((resolve) => {
         const next = async () => {
             try {
@@ -41,7 +43,6 @@ export const POST = async (request) => {
             }
         };
 
-        // Call the rate limiter middleware
         rateLimiter({ ...request, ip }, rateLimitRes, next);
     });
 };
