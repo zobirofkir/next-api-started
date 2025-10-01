@@ -1,9 +1,11 @@
+import bcrypt from 'bcryptjs';
 import BaseController from './BaseController.js';
 import RegisterRequest from '../requests/RegisterRequest.js';
 import LoginRequest from '../requests/LoginRequest.js';
 import UpdateMeRequest from '../requests/UpdateMeRequest.js';
 import AuthService from '../services/AuthService.js';
 import AuthResource from '../resources/AuthResource.js';
+import User from '../models/User.js';
 
 const authService = new AuthService();
 
@@ -105,39 +107,76 @@ export class AuthController extends BaseController {
   static async updateMe(req, res) {
     try {
       if (!req || !req.user) {
-        return res.status(401).json({ success: false });
+        return res.status(401).json({ 
+          success: false,
+          error: 'Unauthorized',
+          message: 'Authentication required'
+        });
       }
 
       const request = UpdateMeRequest.from(req);
       if (!request.valid) {
-        return res.status(422).json({ success: false });
+        return res.status(422).json({ 
+          success: false,
+          error: 'Validation failed',
+          details: request.errors || 'Invalid input data'
+        });
       }
 
       const updates = request.validated();
 
       if (Object.keys(updates).length === 0) {
-        return res.status(422).json({ success: false });
+        return res.status(422).json({ 
+          success: false,
+          error: 'No updates provided',
+          message: 'Please provide fields to update'
+        });
       }
 
-      if (updates.password) {
-        updates.password = await bcrypt.hash(updates.password, 10);
+      // Create a copy of updates to avoid modifying the original
+      const updateData = { ...updates };
+
+      if (updateData.password) {
+        updateData.password = await bcrypt.hash(updateData.password, 10);
       }
 
       // If email is changing, ensure not taken by someone else
-      if (updates.email && updates.email !== req.user.email) {
-        const exists = await this.withConnection(() => User.findOne({ email: updates.email }));
+      if (updateData.email && updateData.email !== req.user.email) {
+        const exists = await User.findOne({ email: updateData.email }).exec();
         if (exists && String(exists._id) !== String(req.user._id)) {
-          return res.status(400).json({ success: false });
+          return res.status(400).json({ 
+            success: false,
+            error: 'Email already in use',
+            message: 'The provided email is already registered to another account'
+          });
         }
       }
 
-      const user = await this.withConnection(() =>
-        User.findByIdAndUpdate(req.user._id, updates, { new: true })
-      );
+      const user = await User.findByIdAndUpdate(
+        req.user._id,
+        { $set: updateData },
+        { new: true, runValidators: true }
+      ).exec();
 
-      return res.json({ success: true, resource: new AuthResource(user).toArray() });
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not found',
+          message: 'The user could not be found'
+        });
+      }
+
+      return res.json({ 
+        success: true, 
+        resource: new AuthResource(user).toArray() 
+      });
     } catch (error) {
-      return res.status(500).json({ success: false });
+      console.error('Update user error:', error);
+      return res.status(500).json({ 
+        success: false,
+        error: 'Internal server error',
+        message: 'An error occurred while updating your profile'
+      });
     }
   }
 }
