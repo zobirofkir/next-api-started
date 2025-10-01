@@ -3,6 +3,7 @@ import RegisterRequest from '../requests/RegisterRequest.js';
 import LoginRequest from '../requests/LoginRequest.js';
 import UpdateMeRequest from '../requests/UpdateMeRequest.js';
 import AuthService from '../services/AuthService.js';
+import AuthResource from '../resources/AuthResource.js';
 
 const authService = new AuthService();
 
