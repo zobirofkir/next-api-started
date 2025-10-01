@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import AuthResource from '../resources/AuthResource.js';
+import connect from '../db.js';
 
 export default class AuthService {
   constructor() {
@@ -123,6 +124,12 @@ export default class AuthService {
    * @private
    */
   async withConnection(operation) {
-    return await operation();
+    try {
+      await connect();
+      return await operation();
+    } catch (error) {
+      console.error('Database operation failed:', error);
+      throw new Error('Database connection failed');
+    }
   }
 }
