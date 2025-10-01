@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import AuthResource from '../resources/AuthResource.js';
 import BaseController from './BaseController.js';
+import RegisterRequest from '../requests/RegisterRequest.js';
+import LoginRequest from '../requests/LoginRequest.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -12,22 +14,12 @@ export class AuthController extends BaseController {
    */
   static async register(req, res) {
     try {
-      if (!req || !req.body || typeof req.body !== 'object') {
-        return res.status(400).json({ error: 'Invalid request body' });
+      const request = RegisterRequest.from(req);
+      if (!request.valid) {
+        return res.status(422).json({ errors: request.errors });
       }
 
-      let { name, email, password } = req.body;
-
-      name = typeof name === 'string' ? name.trim() : '';
-      email = typeof email === 'string' ? email.trim().toLowerCase() : '';
-      password = typeof password === 'string' ? password : '';
-
-      if (!name || !email || !password) {
-        return res.status(422).json({ error: 'Name, email and password are required' });
-      }
-      if (password.length < 6) {
-        return res.status(422).json({ error: 'Password must be at least 6 characters' });
-      }
+      const { name, email, password } = request.validated();
 
       const existingUser = await this.withConnection(() =>
         User.findOne({ email })
@@ -56,17 +48,12 @@ export class AuthController extends BaseController {
    */
   static async login(req, res) {
     try {
-      if (!req || !req.body || typeof req.body !== 'object') {
-        return res.status(400).json({ error: 'Invalid request body' });
+      const request = LoginRequest.from(req);
+      if (!request.valid) {
+        return res.status(422).json({ errors: request.errors });
       }
 
-      let { email, password } = req.body;
-      email = typeof email === 'string' ? email.trim().toLowerCase() : '';
-      password = typeof password === 'string' ? password : '';
-
-      if (!email || !password) {
-        return res.status(422).json({ error: 'Email and password are required' });
-      }
+      const { email, password } = request.validated();
 
       const user = await this.withConnection(() =>
         User.findOne({ email })
