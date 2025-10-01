@@ -9,6 +9,16 @@ export default class UpdateMeRequest extends BaseRequest {
     };
   }
 
+  messages() {
+    return {
+      'name.string': 'Name must be a valid string',
+      'email.string': 'Email must be a valid string',
+      'email.email': 'Please enter a valid email address',
+      'password.string': 'Password must be a valid string',
+      'password.min': 'Password must be at least 6 characters long'
+    };
+  }
+
   sanitize(values) {
     const cleaned = {};
     if (typeof values.name === 'string' && values.name.trim() !== '') {
