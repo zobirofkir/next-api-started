@@ -17,7 +17,11 @@ export class AuthController extends BaseController {
     try {
       const request = RegisterRequest.from(req);
       if (!request.valid) {
-        return res.status(422).json({ success: false });
+        return res.status(422).json({
+          success: false,
+          error: 'Validation failed',
+          details: request.errors || 'Invalid input data'
+        });
       }
 
       const { name, email, password } = request.validated();
@@ -27,7 +31,11 @@ export class AuthController extends BaseController {
       );
 
       if (existingUser) {
-        return res.status(400).json({ success: false });
+        return res.status(409).json({
+          success: false,
+          error: 'Email already registered',
+          message: 'An account with this email already exists. Please use a different email or try logging in.'
+        });
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -41,7 +49,12 @@ export class AuthController extends BaseController {
         resource: new AuthResource(user).toArray(),
       });
     } catch (error) {
-      return res.status(500).json({ success: false });
+      console.error('Registration error:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: 'An error occurred while processing your registration. Please try again later.'
+      });
     }
   }
 
@@ -52,21 +65,43 @@ export class AuthController extends BaseController {
     try {
       const request = LoginRequest.from(req);
       if (!request.valid) {
-        return res.status(422).json({ success: false });
+        return res.status(422).json({
+          success: false,
+          error: 'Validation failed',
+          details: request.errors || 'Please provide both email and password'
+        });
       }
 
       const { email, password } = request.validated();
 
       const user = await this.withConnection(() =>
-        User.findOne({ email })
+        User.findOne({ email }).select('+password')
       );
 
-      if (!user || !(await bcrypt.compare(password, user.password))) {
-        return res.status(401).json({ success: false });
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication failed',
+          message: 'No account found with this email. Please check your email or register for a new account.'
+        });
+      }
+
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication failed',
+          message: 'Incorrect password. Please try again.'
+        });
       }
 
       if (!JWT_SECRET) {
-        return res.status(500).json({ success: false });
+        console.error('JWT_SECRET is not configured');
+        return res.status(500).json({
+          success: false,
+          error: 'Server configuration error',
+          message: 'An internal server error occurred. Please try again later.'
+        });
       }
 
       const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
