@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import AuthResource from '../resources/AuthResource.js';
 import connect from '../db.js';
+import { sanitizeEmail, sanitizeName, sanitizePassword } from '../utils/sanitize.js';
 
 export default class AuthService {
   constructor() {
@@ -131,5 +132,83 @@ export default class AuthService {
       console.error('Database operation failed:', error);
       throw new Error('Database connection failed');
     }
+  }
+
+  /**
+   * Update user information
+   * @param {string} userId - The ID of the user to update
+   * @param {Object} updates - The fields to update
+   * @returns {Promise<Object>} - Updated user data
+   * @throws {Error} - If update fails
+   */
+  async updateUser(userId, updates) {
+    // Sanitize update fields
+    if (updates.email) updates.email = sanitizeEmail(updates.email);
+    if (updates.name) updates.name = sanitizeName(updates.name);
+    if (updates.password) updates.password = sanitizePassword(updates.password);
+
+    // Remove any undefined or empty values
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([_, v]) => v !== undefined && v !== '')
+    );
+
+    if (Object.keys(cleanUpdates).length === 0) {
+      const error = new Error('No valid updates provided');
+      error.status = 400;
+      error.details = {
+        success: false,
+        error: 'No updates provided',
+        message: 'Please provide valid fields to update'
+      };
+      throw error;
+    }
+
+    // Handle password hashing if password is being updated
+    if (cleanUpdates.password) {
+      cleanUpdates.password = await bcrypt.hash(cleanUpdates.password, 10);
+    }
+
+    // Check if email is being changed and if it's already in use
+    if (cleanUpdates.email) {
+      const existingUser = await this.withConnection(() =>
+        User.findOne({ email: cleanUpdates.email, _id: { $ne: userId } })
+      );
+
+      if (existingUser) {
+        const error = new Error('Email already in use');
+        error.status = 400;
+        error.details = {
+          success: false,
+          error: 'Email already in use',
+          message: 'The provided email is already registered to another account'
+        };
+        throw error;
+      }
+    }
+
+    // Perform the update
+    const updatedUser = await this.withConnection(() =>
+      User.findByIdAndUpdate(
+        userId,
+        { $set: cleanUpdates },
+        { new: true, runValidators: true }
+      )
+    );
+
+    if (!updatedUser) {
+      const error = new Error('User not found');
+      error.status = 404;
+      error.details = {
+        success: false,
+        error: 'User not found',
+        message: 'The requested user could not be found'
+      };
+      throw error;
+    }
+
+    return {
+      success: true,
+      resource: new AuthResource(updatedUser).toArray()
+    };
   }
 }

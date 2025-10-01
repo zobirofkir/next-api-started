@@ -6,6 +6,7 @@ import UpdateMeRequest from '../requests/UpdateMeRequest.js';
 import AuthService from '../services/AuthService.js';
 import AuthResource from '../resources/AuthResource.js';
 import User from '../models/User.js';
+import { sanitizeEmail, sanitizePassword, sanitizeName } from '../utils/sanitize.js';
 
 const authService = new AuthService();
 
@@ -15,6 +16,18 @@ export class AuthController extends BaseController {
    */
   static async register(req, res) {
     try {
+      /**
+       * Sanitize input data before validation
+       */
+      if (req.body) {
+        req.body = {
+          ...req.body,
+          email: sanitizeEmail(req.body.email),
+          password: sanitizePassword(req.body.password),
+          name: sanitizeName(req.body.name)
+        };
+      }
+
       const request = RegisterRequest.from(req);
       if (!request.valid) {
         return res.status(422).json({
@@ -43,6 +56,17 @@ export class AuthController extends BaseController {
    */
   static async login(req, res) {
     try {
+      /**
+       * Sanitize login input
+       */
+      if (req.body) {
+        req.body = {
+          ...req.body,
+          email: sanitizeEmail(req.body.email),
+          password: sanitizePassword(req.body.password)
+        };
+      }
+
       const request = LoginRequest.from(req);
       if (!request.valid) {
         return res.status(422).json({
@@ -124,59 +148,17 @@ export class AuthController extends BaseController {
       }
 
       const updates = request.validated();
-
-      if (Object.keys(updates).length === 0) {
-        return res.status(422).json({ 
-          success: false,
-          error: 'No updates provided',
-          message: 'Please provide fields to update'
-        });
-      }
-
-      // Create a copy of updates to avoid modifying the original
-      const updateData = { ...updates };
-
-      if (updateData.password) {
-        updateData.password = await bcrypt.hash(updateData.password, 10);
-      }
-
-      // If email is changing, ensure not taken by someone else
-      if (updateData.email && updateData.email !== req.user.email) {
-        const exists = await User.findOne({ email: updateData.email }).exec();
-        if (exists && String(exists._id) !== String(req.user._id)) {
-          return res.status(400).json({ 
-            success: false,
-            error: 'Email already in use',
-            message: 'The provided email is already registered to another account'
-          });
-        }
-      }
-
-      const user = await User.findByIdAndUpdate(
-        req.user._id,
-        { $set: updateData },
-        { new: true, runValidators: true }
-      ).exec();
-
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          error: 'User not found',
-          message: 'The user could not be found'
-        });
-      }
-
-      return res.json({ 
-        success: true, 
-        resource: new AuthResource(user).toArray() 
-      });
+      const result = await authService.updateUser(req.user._id, updates);
+      return res.json(result);
     } catch (error) {
-      console.error('Update user error:', error);
-      return res.status(500).json({ 
-        success: false,
-        error: 'Internal server error',
-        message: 'An error occurred while updating your profile'
-      });
+      console.error('Update error:', error);
+      return res.status(error.status || 500).json(
+        error.details || {
+          success: false,
+          error: 'Update failed',
+          message: 'An error occurred while updating your profile. Please try again.'
+        }
+      );
     }
   }
 }
