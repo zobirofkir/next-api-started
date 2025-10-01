@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import User from '@/app/lib/models/User.js';
 import connect from '@/app/lib/db.js';
+import RevokedToken from '@/app/lib/models/RevokedToken.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -25,12 +26,16 @@ export default async function requireAuth(request, handler) {
         }
 
         await connect();
+        const isRevoked = await RevokedToken.findOne({ token });
+        if (isRevoked) {
+            return NextResponse.json({ error: 'Token revoked' }, { status: 401 });
+        }
         const user = await User.findById(payload.userId);
         if (!user) {
             return NextResponse.json({ error: 'User not found' }, { status: 401 });
         }
 
-        return await handler(user);
+        return await handler(user, token, payload);
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

@@ -85,7 +85,21 @@ export class AuthController extends BaseController {
    * Logout user
    */
   static async logout(req, res) {
-    return res.json({ message: 'Logged out successfully' });
+    try {
+      if (!req || !req.token || !req.payload) {
+        return res.status(400).json({ error: 'Missing token context' });
+      }
+
+      const { exp } = req.payload;
+      const expiresAt = exp ? new Date(exp * 1000) : new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
+
+      const { default: RevokedToken } = await import('../models/RevokedToken.js');
+      await this.withConnection(() => RevokedToken.create({ token: req.token, expiresAt }));
+
+      return res.json({ message: 'Logged out successfully' });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
   }
 
   /**

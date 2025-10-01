@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import requireAuth from "@/app/lib/auth/requireAuth.js";
 
 export const POST = async (request) => {
-    return requireAuth(request, async (user) => {
-        const req = { user };
+    return requireAuth(request, async (user, token, payload) => {
+        const req = { user, token, payload };
         const res = {
             status: (code) => ({
                 json: (data) => NextResponse.json(data, { status: code })
