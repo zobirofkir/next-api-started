@@ -5,6 +5,7 @@ import AuthResource from '../resources/AuthResource.js';
 import BaseController from './BaseController.js';
 import RegisterRequest from '../requests/RegisterRequest.js';
 import LoginRequest from '../requests/LoginRequest.js';
+import UpdateMeRequest from '../requests/UpdateMeRequest.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -85,5 +86,61 @@ export class AuthController extends BaseController {
    */
   static async logout(req, res) {
     return res.json({ message: 'Logged out successfully' });
+  }
+
+  /**
+   * Get current authenticated user
+   */
+  static async me(req, res) {
+    try {
+      if (!req || !req.user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      return res.json({ user: new AuthResource(req.user).toArray() });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  /**
+   * Update current authenticated user
+   */
+  static async updateMe(req, res) {
+    try {
+      if (!req || !req.user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const request = UpdateMeRequest.from(req);
+      if (!request.valid) {
+        return res.status(422).json({ errors: request.errors });
+      }
+
+      const updates = request.validated();
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(422).json({ error: 'No valid fields to update' });
+      }
+
+      if (updates.password) {
+        updates.password = await bcrypt.hash(updates.password, 10);
+      }
+
+      // If email is changing, ensure not taken by someone else
+      if (updates.email && updates.email !== req.user.email) {
+        const exists = await this.withConnection(() => User.findOne({ email: updates.email }));
+        if (exists && String(exists._id) !== String(req.user._id)) {
+          return res.status(400).json({ error: 'Email already in use' });
+        }
+      }
+
+      const user = await this.withConnection(() =>
+        User.findByIdAndUpdate(req.user._id, updates, { new: true })
+      );
+
+      return res.json({ user: new AuthResource(user).toArray() });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
   }
 }
