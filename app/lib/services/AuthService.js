@@ -16,7 +16,25 @@ export default class AuthService {
    * @returns {Promise<Object>} - User data and token if successful
    * @throws {Error} - If registration fails
    */
-  async registerUser({ name, email, password }) {
+  /**
+   * Sanitize user input data
+   * @private
+   */
+  _sanitizeUserInput(data) {
+    const sanitized = { ...data };
+    
+    if (sanitized.email) sanitized.email = sanitizeEmail(sanitized.email);
+    if (sanitized.password) sanitized.password = sanitizePassword(sanitized.password);
+    if (sanitized.name) sanitized.name = sanitizeName(sanitized.name);
+    
+    return sanitized;
+  }
+
+  async registerUser(userData) {
+    // Sanitize input data
+    const sanitizedData = this._sanitizeUserInput(userData);
+    const { name, email, password } = sanitizedData;
+
     const existingUser = await this.withConnection(() =>
       User.findOne({ email })
     );
@@ -55,9 +73,34 @@ export default class AuthService {
    * @returns {Promise<Object>} - User data and token if authentication is successful
    * @throws {Error} - If authentication fails
    */
+  /**
+   * Revoke a JWT token by adding it to the blacklist
+   * @param {string} token - The JWT token to revoke
+   * @param {Object} payload - The decoded JWT payload
+   * @returns {Promise<void>}
+   */
+  async revokeToken(token, payload) {
+    try {
+      const { exp } = payload;
+      const expiresAt = exp ? new Date(exp * 1000) : new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
+      
+      const { default: RevokedToken } = await import('../models/RevokedToken.js');
+      await this.withConnection(() => 
+        RevokedToken.create({ token, expiresAt })
+      );
+    } catch (error) {
+      console.error('Error revoking token:', error);
+      throw error;
+    }
+  }
+
   async loginUser(email, password) {
+    // Sanitize email input
+    const sanitizedEmail = sanitizeEmail(email);
+    const sanitizedPassword = sanitizePassword(password);
+
     const user = await this.withConnection(() =>
-      User.findOne({ email }).select('+password')
+      User.findOne({ email: sanitizedEmail }).select('+password')
     );
 
     if (!user) {
@@ -71,7 +114,7 @@ export default class AuthService {
       throw error;
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(sanitizedPassword, user.password);
     if (!isPasswordValid) {
       const error = new Error('Authentication failed');
       error.status = 401;

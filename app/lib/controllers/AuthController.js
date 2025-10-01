@@ -1,12 +1,9 @@
-import bcrypt from 'bcryptjs';
 import BaseController from './BaseController.js';
 import RegisterRequest from '../requests/RegisterRequest.js';
 import LoginRequest from '../requests/LoginRequest.js';
 import UpdateMeRequest from '../requests/UpdateMeRequest.js';
 import AuthService from '../services/AuthService.js';
 import AuthResource from '../resources/AuthResource.js';
-import User from '../models/User.js';
-import { sanitizeEmail, sanitizePassword, sanitizeName } from '../utils/sanitize.js';
 
 const authService = new AuthService();
 
@@ -16,18 +13,6 @@ export class AuthController extends BaseController {
    */
   static async register(req, res) {
     try {
-      /**
-       * Sanitize input data before validation
-       */
-      if (req.body) {
-        req.body = {
-          ...req.body,
-          email: sanitizeEmail(req.body.email),
-          password: sanitizePassword(req.body.password),
-          name: sanitizeName(req.body.name)
-        };
-      }
-
       const request = RegisterRequest.from(req);
       if (!request.valid) {
         return res.status(422).json({
@@ -37,7 +22,7 @@ export class AuthController extends BaseController {
         });
       }
 
-      const result = await authService.registerUser(request.validated());
+      const result = await authService.registerUser(req.body);
       return res.status(201).json(result);
     } catch (error) {
       console.error('Registration error:', error);
@@ -56,17 +41,6 @@ export class AuthController extends BaseController {
    */
   static async login(req, res) {
     try {
-      /**
-       * Sanitize login input
-       */
-      if (req.body) {
-        req.body = {
-          ...req.body,
-          email: sanitizeEmail(req.body.email),
-          password: sanitizePassword(req.body.password)
-        };
-      }
-
       const request = LoginRequest.from(req);
       if (!request.valid) {
         return res.status(422).json({
@@ -76,8 +50,7 @@ export class AuthController extends BaseController {
         });
       }
 
-      const { email, password } = request.validated();
-      const result = await authService.loginUser(email, password);
+      const result = await authService.loginUser(req.body.email, req.body.password);
       return res.json(result);
     } catch (error) {
       return res.status(error.status || 500).json(
@@ -99,12 +72,7 @@ export class AuthController extends BaseController {
         return res.status(400).json({ success: false });
       }
 
-      const { exp } = req.payload;
-      const expiresAt = exp ? new Date(exp * 1000) : new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
-
-      const { default: RevokedToken } = await import('../models/RevokedToken.js');
-      await this.withConnection(() => RevokedToken.create({ token: req.token, expiresAt }));
-
+      await authService.revokeToken(req.token, req.payload);
       return res.json({ success: true, resource: null });
     } catch (error) {
       return res.status(500).json({ success: false });
@@ -117,11 +85,28 @@ export class AuthController extends BaseController {
   static async me(req, res) {
     try {
       if (!req || !req.user) {
-        return res.status(401).json({ success: false });
+        return res.status(401).json({ 
+          success: false,
+          error: 'Unauthorized',
+          message: 'No authenticated user found'
+        });
       }
-      return res.json({ success: true, resource: new AuthResource(req.user).toArray() });
+      
+      // Ensure user data is a plain object
+      const userData = req.user.toObject ? req.user.toObject() : req.user;
+      
+      return res.json({ 
+        success: true, 
+        resource: new AuthResource(userData).toArray() 
+      });
     } catch (error) {
-      return res.status(500).json({ success: false });
+      console.error('Error in /me endpoint:', error);
+      return res.status(500).json({ 
+        success: false,
+        error: 'Internal Server Error',
+        message: 'An error occurred while fetching user data',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   }
 
@@ -147,8 +132,7 @@ export class AuthController extends BaseController {
         });
       }
 
-      const updates = request.validated();
-      const result = await authService.updateUser(req.user._id, updates);
+      const result = await authService.updateUser(req.user._id, req.body);
       return res.json(result);
     } catch (error) {
       console.error('Update error:', error);
