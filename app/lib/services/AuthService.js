@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import AuthResource from '../resources/AuthResource.js';
-import connect from '../db.js';
+import connect from '../connection/db.js';
 import { sanitizeEmail, sanitizeName, sanitizePassword } from '../utils/sanitize.js';
 
 export default class AuthService {

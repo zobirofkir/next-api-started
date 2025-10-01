@@ -1,4 +1,4 @@
-import connect from "@/app/lib/db";
+import connect from "@/app/lib/connection/db";
 
 class BaseController {
     static async withConnection(callback) {
