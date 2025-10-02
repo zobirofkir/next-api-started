@@ -2,7 +2,15 @@ import { NextResponse } from 'next/server';
 import BookingController from '@/app/lib/controllers/BookingController';
 import { auth } from '@/app/lib/auth';
 
-// GET /api/bookings - Get all bookings (admin) or user's bookings
+/**
+ * Handles GET requests to /api/bookings
+ * @param {Request} request - The incoming HTTP request
+ * @returns {Promise<NextResponse>} Response containing bookings data or error message
+ * @description 
+ * - Returns facility bookings if facilityId and date are provided
+ * - Returns specific user's bookings if userId is provided
+ * - Returns current user's bookings by default
+ */
 export async function GET(request) {
   const session = await auth();
   if (!session) {
@@ -14,35 +22,37 @@ export async function GET(request) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const facilityId = searchParams.get('facilityId');
     const date = searchParams.get('date');
-
-    let bookings;
+    const userId = searchParams.get('userId');
+    
     if (facilityId && date) {
-      // Get bookings for a specific facility on a specific date
-      bookings = await BookingController.getFacilityBookings(facilityId, date);
-    } else if (userId) {
-      // Get bookings for a specific user
-      bookings = await BookingController.getUserBookings(userId);
-    } else if (session.user.role === 'admin') {
-      // Admin can see all bookings
-      bookings = await BookingController.index();
-    } else {
-      // Regular users can only see their own bookings
-      bookings = await BookingController.getUserBookings(session.user.id);
+      const bookings = await BookingController.getFacilityBookings(facilityId, date);
+      return NextResponse.json(bookings);
     }
+    
+    if (userId) {
+      const userBookings = await BookingController.getUserBookings(userId);
+      return NextResponse.json(userBookings);
+    }
+    
+    const userBookings = await BookingController.getUserBookings(session.user.id);
+    return NextResponse.json(userBookings);
 
-    return NextResponse.json(bookings);
   } catch (error) {
     return NextResponse.json(
       { message: error.message },
-      { status: 500 }
+      { status: error.statusCode || 500 }
     );
   }
 }
 
-// POST /api/bookings - Create a new booking
+/**
+ * Handles POST requests to /api/bookings
+ * @param {Request} request - The incoming HTTP request containing booking data
+ * @returns {Promise<NextResponse>} Response containing created booking or error message
+ * @description Creates a new booking for the authenticated user
+ */
 export async function POST(request) {
   const session = await auth();
   if (!session) {
@@ -54,7 +64,6 @@ export async function POST(request) {
 
   try {
     const data = await request.json();
-    // Ensure the booking is created for the logged-in user
     const bookingData = {
       ...data,
       user: session.user.id,

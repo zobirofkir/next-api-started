@@ -13,57 +13,35 @@ class BookingSeeder extends BaseSeeder {
    * @returns {Promise<Array>} Array of created bookings
    */
   static async run() {
-    const facilities = await Facility.find({});
+    // Find the first facility (Main Football Field)
+    const facility = await Facility.findOne({ name: 'Main Football Field' });
     const adminUser = await User.findOne({ email: 'zobir@admin.com' });
 
-    if (facilities.length === 0 || !adminUser) {
+    if (!facility || !adminUser) {
       console.log('Please run FacilitySeeder and ensure the admin user exists');
       return [];
     }
 
     await Booking.deleteMany({});
-
-    const bookings = [];
-    const statuses = ['pending', 'confirmed', 'cancelled', 'completed'];
-    const paymentStatuses = ['pending', 'paid', 'failed', 'refunded'];
-
-    for (let i = 0; i < 30; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() + i);
-      
-      const bookingsPerDay = 1 + Math.floor(Math.random() * 3);
-      
-      for (let j = 0; j < bookingsPerDay; j++) {
-        const facility = facilities[Math.floor(Math.random() * facilities.length)];
-        const user = adminUser;
-        
-        const startHour = 9 + Math.floor(Math.random() * 12);
-        const endHour = Math.min(21, startHour + 1 + Math.floor(Math.random() * 3));
-        
-        const startTime = `${startHour.toString().padStart(2, '0')}:00`;
-        const endTime = `${endHour.toString().padStart(2, '0')}:00`;
-        
-        const hours = endHour - startHour;
-        const totalPrice = hours * facility.price;
-        
-        const status = statuses[Math.floor(Math.random() * statuses.length)];
-        const paymentStatus = paymentStatuses[Math.floor(Math.random() * paymentStatuses.length)];
-        
-        const booking = {
-          user: user._id,
-          facility: facility._id,
-          date: date,
-          startTime: startTime,
-          endTime: endTime,
-          totalPrice: totalPrice,
-          status: status,
-          paymentStatus: paymentStatus,
-          notes: `Booking for ${facility.name}`
-        };
-        
-        bookings.push(booking);
-      }
-    }
+    
+    // Create a booking for today at 14:00-16:00
+    const bookingDate = new Date();
+    const booking = {
+      user: adminUser._id,
+      facility: facility._id,
+      date: bookingDate,
+      startTime: '14:00',
+      endTime: '16:00',
+      totalPrice: 2 * facility.price, // 2 hours
+      status: 'confirmed',
+      paymentStatus: 'paid',
+      notes: `Booking for ${facility.name}`
+    };
+    
+    const createdBooking = await Booking.create(booking);
+    console.log(`Created booking for ${facility.name}:`, createdBooking);
+    
+    return [createdBooking];
 
     const createdBookings = await Booking.insertMany(bookings);
     console.log(`Created ${createdBookings.length} bookings`);

@@ -4,6 +4,13 @@ import LoginRequest from '../requests/LoginRequest.js';
 import UpdateMeRequest from '../requests/UpdateMeRequest.js';
 import AuthService from '../services/AuthService.js';
 import AuthResource from '../resources/AuthResource.js';
+import mongoose from 'mongoose';
+import Facility from '../models/Facility.js';
+
+// Ensure models are registered
+if (mongoose.models && !mongoose.models.Facility) {
+  mongoose.model('Facility', Facility.schema);
+}
 
 const authService = new AuthService();
 
@@ -119,6 +126,16 @@ export class AuthController extends BaseController {
    * @param {Object} res - Express response object
    * @returns {Promise<Object>} User profile data or error response
    */
+  /**
+   * Retrieves the profile information and bookings of the currently authenticated user.
+   * 
+   * @static
+   * @async
+   * @param {Object} req - Express request object
+   * @param {Object} req.user - Authenticated user object
+   * @param {Object} res - Express response object
+   * @returns {Promise<Object>} User profile data with bookings or error response
+   */
   static async me(req, res) {
     try {
       if (!req || !req.user) {
@@ -129,11 +146,26 @@ export class AuthController extends BaseController {
         });
       }
       
+      // Get user data
       const userData = req.user.toObject ? req.user.toObject() : req.user;
+      
+// Get user's bookings
+      const Booking = (await import('../models/Booking.js')).default;
+      const bookings = await Booking.find({ user: req.user._id })
+        .populate({
+          path: 'facility',
+          model: 'Facility',
+          select: 'name image',
+        })
+        .sort({ date: -1, startTime: 1 })
+        .lean();
+      
+      // Add bookings to user data
+      userData.bookings = bookings;
       
       return res.json({ 
         success: true, 
-        resource: new AuthResource(userData).toArray() 
+        resource: new AuthResource(userData).toArray()
       });
     } catch (error) {
       console.error('Error in /me endpoint:', error);
