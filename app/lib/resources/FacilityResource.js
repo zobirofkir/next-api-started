@@ -6,7 +6,7 @@ class FacilityResource extends Resource {
             id: this.resource._id,
             name: this.resource.name,
             sport: this.resource.sport,
-            image: process.env.APP_URL + this.resource.image,
+            image: "https://university-frontend-eight.vercel.app/" + this.resource.image,
             capacity: this.resource.capacity,
             price: this.resource.price,
             rating: this.resource.rating,
