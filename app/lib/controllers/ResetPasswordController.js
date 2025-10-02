@@ -24,7 +24,6 @@ class ResetPasswordController extends BaseController {
             if (!user) {
                 return res.status(200).json({
                     success: true,
-                    message: 'If an account with that email exists, a password reset link has been sent.'
                 });
             }
 
@@ -40,7 +39,6 @@ class ResetPasswordController extends BaseController {
 
             res.status(200).json({
                 success: true,
-                message: 'If an account with that email exists, a password reset link has been sent.'
             });
         } catch (error) {
             res.status(500).json({
