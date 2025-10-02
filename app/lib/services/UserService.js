@@ -1,5 +1,5 @@
 import User from '../models/User';
-import connectDB from '../connection/db';
+import connect from '../connection/db';
 
 export default class UserService {
     /**
@@ -8,8 +8,13 @@ export default class UserService {
      * @returns {Promise<Object>} User document or null if not found
      */
     static async findUserByEmail(email) { 
-        await connectDB();
-        return User.findOne({ email });
+        try {
+            await connect();
+            return await User.findOne({ email });
+        } catch (error) {
+            console.error('Error in findUserByEmail:', error);
+            throw error;
+        }
     }
 
     /**
@@ -18,11 +23,17 @@ export default class UserService {
      * @returns {Promise<Object>} User document or null if not found or token expired
      */
     static async findUserByResetToken(token) {
-        await connectDB();
-        return User.findOne({
-            resetPasswordToken: token,
-            resetPasswordExpires: { $gt: Date.now() }
-        });
+        try {
+            await connect();
+            const user = await User.findOne({
+                resetPasswordToken: token,
+                resetPasswordExpires: { $gt: Date.now() }
+            });
+            return user;
+        } catch (error) {
+            console.error('Error in findUserByResetToken:', error);
+            throw error;
+        }
     }
 
     /**
@@ -33,15 +44,20 @@ export default class UserService {
      * @returns {Promise<Object>} Updated user document
      */
     static async setResetToken(userId, token, expiresAt) {
-        await connectDB();
-        return User.findByIdAndUpdate(
-            userId,
-            {
-                resetPasswordToken: token,
-                resetPasswordExpires: expiresAt
-            },
-            { new: true }
-        );
+        try {
+            await connect();
+            return await User.findByIdAndUpdate(
+                userId,
+                {
+                    resetPasswordToken: token,
+                    resetPasswordExpires: expiresAt
+                },
+                { new: true }
+            );
+        } catch (error) {
+            console.error('Error in setResetToken:', error);
+            throw error;
+        }
     }
 
     /**
@@ -51,15 +67,20 @@ export default class UserService {
      * @returns {Promise<Object>} Updated user document
      */
     static async updatePassword(userId, newPassword) {
-        await connectDB();
-        return User.findByIdAndUpdate(
-            userId,
-            {
-                password: newPassword,
-                resetPasswordToken: undefined,
-                resetPasswordExpires: undefined
-            },
-            { new: true }
-        );
+        try {
+            await connect();
+            return await User.findByIdAndUpdate(
+                userId,
+                {
+                    password: newPassword,
+                    resetPasswordToken: undefined,
+                    resetPasswordExpires: undefined
+                },
+                { new: true }
+            );
+        } catch (error) {
+            console.error('Error in updatePassword:', error);
+            throw error;
+        }
     }
 }

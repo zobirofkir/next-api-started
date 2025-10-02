@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import ResetPasswordController from '@/app/lib/controllers/ResetPasswordController';
 import rateLimiter from '@/app/middleware/rateLimiter';
+import connectDB from '@/app/lib/connection/db';
 
 /**
  * Handles POST requests to the reset password endpoint
@@ -24,6 +25,9 @@ export const POST = async (request) => {
     return new Promise((resolve) => {
         const next = async () => {
             try {
+                // Establish database connection first
+                await connectDB();
+                
                 const body = await request.json();
                 const req = { body, ip };
                 const res = {
@@ -35,9 +39,9 @@ export const POST = async (request) => {
                 
                 // Handle different reset password actions based on the request
                 if (body.action === 'request') {
-                    return ResetPasswordController.forgotPassword(req, res);
+                    return await ResetPasswordController.forgotPassword(req, res);
                 } else if (body.action === 'reset') {
-                    return ResetPasswordController.resetPassword(req, res);
+                    return await ResetPasswordController.resetPassword(req, res);
                 } else {
                     return res.status(400).json({
                         success: false,

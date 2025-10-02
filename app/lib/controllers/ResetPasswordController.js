@@ -50,6 +50,44 @@ class ResetPasswordController extends BaseController {
     }
 
     /**
+     * Verifies if a reset token is valid
+     * @param {Object} req - Express request object
+     * @param {Object} res - Express response object
+     */
+    static async verifyResetToken(req, res) {
+        try {
+            const { token } = req.params;
+            
+            if (!token) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Token is required.'
+                });
+            }
+            
+            const user = await UserService.findUserByResetToken(token);
+            if (!user) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Password reset token is invalid or has expired.'
+                });
+            }
+
+            res.status(200).json({
+                success: true,
+                message: 'Token is valid.',
+                email: user.email
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Error verifying token.',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+    }
+
+    /**
      * Resets the user's password using a valid token
      * @param {Object} req - Express request object
      * @param {Object} res - Express response object
