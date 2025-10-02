@@ -2,6 +2,7 @@ import BaseController from "./BaseController";
 import User from "../models/User";
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import connectDB from '../connection/db';
 
 class ResetPasswordController extends BaseController {
     /**
@@ -13,14 +14,30 @@ class ResetPasswordController extends BaseController {
         try {
             const { email } = req.body;
             
+            if (!email) {
+                console.error('No email provided in request');
+                return res.status(400).json({
+                    success: false,
+                    message: 'Email is required.'
+                });
+            }
+
+            console.log('Processing password reset request for email:', email);
+            
+            // 0. Ensure database connection
+            await connectDB();
+            
             // 1. Find user by email
             const user = await User.findOne({ email });
             if (!user) {
-                return res.status(404).json({
-                    success: false,
+                console.log('User not found for email:', email);
+                return res.status(200).json({
+                    success: true,
                     message: 'If an account with that email exists, a password reset link has been sent.'
                 });
             }
+
+            console.log('User found, generating reset token for user ID:', user._id);
 
             // 2. Generate reset token and set expiry (1 hour from now)
             const resetToken = crypto.randomBytes(32).toString('hex');
@@ -30,10 +47,24 @@ class ResetPasswordController extends BaseController {
             user.resetPasswordToken = resetToken;
             user.resetPasswordExpires = resetTokenExpiry;
             await user.save();
+            console.log('Reset token saved for user:', user._id);
 
             // 4. Send email with reset link
+            if (!process.env.FRONTEND_URL) {
+                console.error('FRONTEND_URL is not set in environment variables');
+                throw new Error('FRONTEND_URL is not configured');
+            }
+
             const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-            await this.sendResetEmail(user.email, resetUrl);
+            console.log('Sending reset email to:', user.email);
+            
+            try {
+                await this.sendResetEmail(user.email, resetUrl);
+                console.log('Reset email sent successfully to:', user.email);
+            } catch (emailError) {
+                console.error('Failed to send reset email:', emailError);
+                throw new Error(`Failed to send reset email: ${emailError.message}`);
+            }
 
             res.status(200).json({
                 success: true,
@@ -43,7 +74,8 @@ class ResetPasswordController extends BaseController {
             console.error('Forgot password error:', error);
             res.status(500).json({
                 success: false,
-                message: 'Error processing forgot password request.'
+                message: error.message || 'Error processing forgot password request.',
+                error: process.env.NODE_ENV === 'development' ? error.stack : undefined
             });
         }
     }
@@ -56,6 +88,9 @@ class ResetPasswordController extends BaseController {
     static async resetPassword(req, res) {
         try {
             const { token, password } = req.body;
+            
+            // 0. Ensure database connection
+            await connectDB();
             
             // 1. Find user by token and check if it's not expired
             const user = await User.findOne({
@@ -98,29 +133,67 @@ class ResetPasswordController extends BaseController {
      * @param {string} resetUrl - Password reset URL
      */
     static async sendResetEmail(email, resetUrl) {
-        // In a real app, you would use a proper email service
-        // This is a basic example using nodemailer
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL_USERNAME,
-                pass: process.env.EMAIL_PASSWORD
+        try {
+            // Validate required environment variables
+            const requiredEnvVars = ['EMAIL_USERNAME', 'EMAIL_PASSWORD', 'EMAIL_FROM'];
+            const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+            
+            if (missingVars.length > 0) {
+                throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
             }
-        });
 
-        const mailOptions = {
-            from: process.env.EMAIL_FROM,
-            to: email,
-            subject: 'Password Reset Request',
-            html: `
-                <p>You requested a password reset. Click the link below to set a new password:</p>
-                <a href="${resetUrl}">Reset Password</a>
-                <p>This link will expire in 1 hour.</p>
-                <p>If you didn't request this, please ignore this email.</p>
-            `
-        };
+            console.log('Configuring email transport...');
+            const transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST || 'smtp.gmail.com',
+                port: process.env.SMTP_PORT || 587,
+                secure: process.env.SMTP_SECURE === 'true',
+                auth: {
+                    user: process.env.EMAIL_USERNAME,
+                    pass: process.env.EMAIL_PASSWORD
+                },
+                tls: {
+                    rejectUnauthorized: process.env.NODE_ENV === 'production'
+                }
+            });
 
-        await transporter.sendMail(mailOptions);
+            console.log('Preparing email for:', email);
+            const mailOptions = {
+                from: process.env.EMAIL_FROM,
+                to: email,
+                subject: 'Password Reset Request',
+                html: `
+                    <h2>Password Reset Request</h2>
+                    <p>You requested a password reset. Click the button below to set a new password:</p>
+                    <div style="margin: 20px 0;">
+                        <a href="${resetUrl}" 
+                           style="background-color: #4CAF50; color: white; padding: 12px 20px; 
+                                  text-align: center; text-decoration: none; display: inline-block; 
+                                  border-radius: 4px;">
+                            Reset Password
+                        </a>
+                    </div>
+                    <p>Or copy and paste this link into your browser:</p>
+                    <p>${resetUrl}</p>
+                    <p>This link will expire in 1 hour.</p>
+                    <hr>
+                    <p style="color: #666; font-size: 12px;">
+                        If you didn't request this password reset, please ignore this email or contact support 
+                        if you have any concerns about your account's security.
+                    </p>
+                `
+            };
+
+            console.log('Sending email...');
+            const info = await transporter.sendMail(mailOptions);
+            console.log('Email sent:', info.messageId);
+            return info;
+        } catch (error) {
+            console.error('Email sending error:', error);
+            if (error.response) {
+                console.error('SMTP Error:', error.response);
+            }
+            throw new Error(`Failed to send email: ${error.message}`);
+        }
     }
 
     /**
