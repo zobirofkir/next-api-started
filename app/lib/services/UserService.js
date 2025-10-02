@@ -69,15 +69,21 @@ export default class UserService {
     static async updatePassword(userId, newPassword) {
         try {
             await connect();
-            return await User.findByIdAndUpdate(
-                userId,
-                {
-                    password: newPassword,
-                    resetPasswordToken: undefined,
-                    resetPasswordExpires: undefined
-                },
-                { new: true }
-            );
+            // Find the user first
+            const user = await User.findById(userId);
+            if (!user) {
+                throw new Error('User not found');
+            }
+            
+            // Update the password (the pre-save hook will hash it)
+            user.password = newPassword;
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpires = undefined;
+            
+            // Save the user to trigger the pre-save hook
+            await user.save();
+            
+            return user;
         } catch (error) {
             console.error('Error in updatePassword:', error);
             throw error;

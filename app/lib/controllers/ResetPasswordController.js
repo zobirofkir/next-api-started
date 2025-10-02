@@ -102,6 +102,14 @@ class ResetPasswordController extends BaseController {
                     message: 'Token and new password are required.'
                 });
             }
+
+            // Validate password strength
+            if (password.length < 8) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Password must be at least 8 characters long.'
+                });
+            }
             
             const user = await UserService.findUserByResetToken(token);
             if (!user) {
@@ -111,6 +119,7 @@ class ResetPasswordController extends BaseController {
                 });
             }
 
+            // The password will be hashed by the pre-save hook in the User model
             await UserService.updatePassword(user._id, password);
             await EmailService.sendPasswordChangedEmail(user.email);
 
