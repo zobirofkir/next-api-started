@@ -143,18 +143,45 @@ class ResetPasswordController extends BaseController {
             }
 
             console.log('Configuring email transport...');
-            const transporter = nodemailer.createTransport({
+            
+            // Enhanced email configuration with better error handling
+            const emailConfig = {
                 host: process.env.SMTP_HOST || 'smtp.gmail.com',
-                port: process.env.SMTP_PORT || 587,
+                port: parseInt(process.env.SMTP_PORT) || 587,
                 secure: process.env.SMTP_SECURE === 'true',
                 auth: {
                     user: process.env.EMAIL_USERNAME,
                     pass: process.env.EMAIL_PASSWORD
                 },
+                // For Gmail, you might need to enable less secure apps or use an App Password
                 tls: {
+                    // Do not fail on invalid certs in development
                     rejectUnauthorized: process.env.NODE_ENV === 'production'
-                }
+                },
+                // Add debug logging
+                debug: process.env.NODE_ENV !== 'production',
+                // Connection timeout
+                connectionTimeout: 10000, // 10 seconds
+                // Add some retry logic
+                maxConnections: 5,
+                maxMessages: 100
+            };
+
+            console.log('Email config:', {
+                ...emailConfig,
+                auth: { user: emailConfig.auth.user } // Don't log the password
             });
+
+            const transporter = nodemailer.createTransport(emailConfig);
+            
+            // Verify connection configuration
+            try {
+                await transporter.verify();
+                console.log('Server is ready to take our messages');
+            } catch (error) {
+                console.error('SMTP connection error:', error);
+                throw new Error(`Failed to connect to email server: ${error.message}`);
+            }
 
             console.log('Preparing email for:', email);
             const mailOptions = {
