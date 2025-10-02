@@ -83,6 +83,22 @@ class BookingController extends BaseController {
     }
 
     /**
+     * Update booking status
+     */
+    static async updateStatus(id, status) {
+        const booking = await this.withConnection(() => 
+            Booking.findByIdAndUpdate(
+                id, 
+                { status },
+                { new: true }
+            )
+            .populate('user')
+            .populate('facility')
+        );
+        return BookingResource.make(booking).toArray();
+    }
+
+    /**
      * Get user's bookings
      */
     static async getUserBookings(userId) {

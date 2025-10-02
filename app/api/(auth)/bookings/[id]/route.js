@@ -1,97 +1,89 @@
 import { NextResponse } from 'next/server';
 import BookingController from '@/app/lib/controllers/BookingController';
-import { auth } from '@/app/lib/auth';
+import requireAuth from '@/app/lib/auth/requireAuth';
 
 // GET /api/bookings/[id] - Get a single booking
 export async function GET(request, { params }) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json(
-      { message: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
+  const { id } = await params;
+  return requireAuth(request, async (user) => {
+    try {
+      const booking = await BookingController.show(id);
+      
+      // Check if the user is authorized to view this booking
+      const bookingUserId = booking.user?.id || booking.user?._id || booking.user;
+      if (String(bookingUserId) !== String(user._id)) {
+        return NextResponse.json(
+          { message: 'Forbidden' },
+          { status: 403 }
+        );
+      }
 
-  try {
-    const booking = await BookingController.show(params.id);
-    
-    // Check if the user is authorized to view this booking
-    if (session.user.role !== 'admin' && booking.user.id !== session.user.id) {
+      return NextResponse.json(booking);
+    } catch (error) {
       return NextResponse.json(
-        { message: 'Forbidden' },
-        { status: 403 }
+        { message: error.message },
+        { status: 500 }
       );
     }
-
-    return NextResponse.json(booking);
-  } catch (error) {
-    return NextResponse.json(
-      { message: error.message },
-      { status: 500 }
-    );
-  }
+  });
 }
 
 // PUT /api/bookings/[id] - Update a booking
 export async function PUT(request, { params }) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json(
-      { message: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
+  const { id } = await params;
+  return requireAuth(request, async (user) => {
+    try {
+      const booking = await BookingController.show(id);
+      
+      // Check if the user is authorized to update this booking
+      const bookingUserId = booking.user?.id || booking.user?._id || booking.user;
+      if (String(bookingUserId) !== String(user._id)) {
+        return NextResponse.json(
+          { message: 'Forbidden' },
+          { status: 403 }
+        );
+      }
 
-  try {
-    const booking = await BookingController.show(params.id);
-    
-    // Check if the user is authorized to update this booking
-    if (session.user.role !== 'admin' && booking.user.id !== session.user.id) {
+      const data = await request.json();
+      const updatedBooking = await BookingController.update(id, data);
+      return NextResponse.json(updatedBooking);
+    } catch (error) {
       return NextResponse.json(
-        { message: 'Forbidden' },
-        { status: 403 }
+        { message: error.message },
+        { status: 400 }
       );
     }
-
-    const data = await request.json();
-    const updatedBooking = await BookingController.update(params.id, data);
-    return NextResponse.json(updatedBooking);
-  } catch (error) {
-    return NextResponse.json(
-      { message: error.message },
-      { status: 400 }
-    );
-  }
+  });
 }
 
 // DELETE /api/bookings/[id] - Cancel a booking
 export async function DELETE(request, { params }) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json(
-      { message: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
+  const { id } = await params;
+  return requireAuth(request, async (user) => {
+    try {
+      const booking = await BookingController.show(id);
+      
+      // Check if the user is authorized to delete this booking
+      const bookingUserId = booking.user?.id || booking.user?._id || booking.user;
+      if (String(bookingUserId) !== String(user._id)) {
+        return NextResponse.json(
+          { message: 'Forbidden' },
+          { status: 403 }
+        );
+      }
 
-  try {
-    const booking = await BookingController.show(params.id);
-    
-    // Check if the user is authorized to delete this booking
-    if (session.user.role !== 'admin' && booking.user.id !== session.user.id) {
+      // Instead of deleting, we'll mark it as cancelled
+      const updatedBooking = await BookingController.updateStatus(id, 'cancelled');
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Booking cancelled successfully',
+        booking: updatedBooking
+      });
+    } catch (error) {
       return NextResponse.json(
-        { message: 'Forbidden' },
-        { status: 403 }
+        { message: error.message },
+        { status: 400 }
       );
     }
-
-    // Instead of deleting, we'll mark it as cancelled
-    await BookingController.updateStatus(params.id, 'cancelled');
-    return NextResponse.json(null, { status: 204 });
-  } catch (error) {
-    return NextResponse.json(
-      { message: error.message },
-      { status: 400 }
-    );
-  }
+  });
 }
