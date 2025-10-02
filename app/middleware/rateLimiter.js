@@ -26,16 +26,24 @@ const rateLimiterMiddleware = (req, res, next) => {
   const key = req.ip;
   
   rateLimiter.consume(key, 1)
-    .then(() => next())
+    .then((rateLimiterRes) => {
+      // Add rate limit headers to successful responses
+      res.setHeader('X-RateLimit-Limit', rateLimiterOptions.points);
+      res.setHeader('X-RateLimit-Remaining', rateLimiterRes.remainingPoints);
+      res.setHeader('X-RateLimit-Reset', new Date(Date.now() + rateLimiterRes.msBeforeNext).toISOString());
+      next();
+    })
     .catch((rejRes) => {
       const secs = Math.ceil(rejRes.msBeforeNext / 1000) || 1;
-      res.set('Retry-After', String(secs));
       
       return res.status(429).json({
         success: false,
         error: 'Too Many Requests',
         message: 'Too many login attempts. Please try again later.',
-        retryAfter: secs
+        retryAfter: secs,
+        remainingPoints: 0,
+        maxPoints: rateLimiterOptions.points,
+        msBeforeNext: rejRes.msBeforeNext
       });
     });
 };
