@@ -1,8 +1,8 @@
-import dbConnect from '../connection';
+import connect from '../connection/db.js';
 
 export default class BaseSeeder {
   static async connect() {
-    await dbConnect();
+    await connect();
   }
 
   static async run() {

@@ -1,6 +1,6 @@
-import UserSeeder from './UserSeeder';
-import FacilitySeeder from './FacilitySeeder';
-import BookingSeeder from './BookingSeeder';
+import UserSeeder from './UserSeeder.js';
+import FacilitySeeder from './FacilitySeeder.js';
+import BookingSeeder from './BookingSeeder.js';
 
 export async function seed() {
   try {

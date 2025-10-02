@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev --turbopack --hostname 0.0.0.0",
     "build": "next build --turbopack",
-    "start": "next start"
+    "start": "next start",
+    "seed": "node -e \"import('./app/lib/seeders/index.js').then(({ seed }) => seed())\""
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -22,5 +23,6 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "tailwindcss": "^4"
-  }
+  },
+  "type": "module"
 }

@@ -1,5 +1,5 @@
-import BaseSeeder from './BaseSeeder';
-import Facility from '../models/Facility';
+import BaseSeeder from './BaseSeeder.js';
+import Facility from '../models/Facility.js';
 
 const facilities = [
   {

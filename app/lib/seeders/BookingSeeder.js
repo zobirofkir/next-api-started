@@ -1,7 +1,7 @@
-import BaseSeeder from './BaseSeeder';
-import Booking from '../models/Booking';
-import Facility from '../models/Facility';
-import User from '../models/User';
+import BaseSeeder from './BaseSeeder.js';
+import Booking from '../models/Booking.js';
+import Facility from '../models/Facility.js';
+import User from '../models/User.js';
 
 class BookingSeeder extends BaseSeeder {
   static async run() {

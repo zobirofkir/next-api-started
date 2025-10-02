@@ -1,5 +1,5 @@
-import BaseSeeder from './BaseSeeder';
-import User from '../models/User';
+import BaseSeeder from './BaseSeeder.js';
+import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 
 const users = [
@@ -7,8 +7,6 @@ const users = [
     name: 'Zobir',
     email: 'zobir@admin.com',
     password: 'zobir123',
-    role: 'admin',
-    phone: '+1234567890',
     isVerified: true
   }
 ];
