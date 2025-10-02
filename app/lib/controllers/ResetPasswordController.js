@@ -20,42 +20,29 @@ class ResetPasswordController extends BaseController {
                 });
             }
 
-            console.log('Processing password reset request for email:', email);
-            
-            // 1. Find user by email
             const user = await UserService.findUserByEmail(email);
             if (!user) {
-                // Return success even if user not found to prevent email enumeration
                 return res.status(200).json({
                     success: true,
                     message: 'If an account with that email exists, a password reset link has been sent.'
                 });
             }
 
-            console.log('User found, generating reset token for user ID:', user._id);
-
-            // 2. Generate and save reset token
             const { token, expiresAt } = TokenService.generateResetToken();
             await UserService.setResetToken(user._id, token, expiresAt);
-            console.log('Reset token saved for user:', user._id);
 
-            // 3. Send reset email
             if (!process.env.FRONTEND_URL) {
                 throw new Error('FRONTEND_URL is not configured');
             }
 
             const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
-            console.log('Sending reset email to:', user.email);
-            
             await EmailService.sendPasswordResetEmail(user.email, resetUrl);
-            console.log('Reset email sent successfully to:', user.email);
 
             res.status(200).json({
                 success: true,
                 message: 'If an account with that email exists, a password reset link has been sent.'
             });
         } catch (error) {
-            console.error('Forgot password error:', error);
             res.status(500).json({
                 success: false,
                 message: error.message || 'Error processing forgot password request.',
@@ -80,7 +67,6 @@ class ResetPasswordController extends BaseController {
                 });
             }
             
-            // 1. Find user by token and check if it's not expired
             const user = await UserService.findUserByResetToken(token);
             if (!user) {
                 return res.status(400).json({
@@ -89,10 +75,7 @@ class ResetPasswordController extends BaseController {
                 });
             }
 
-            // 2. Update password and clear reset token
             await UserService.updatePassword(user._id, password);
-
-            // 3. Send confirmation email
             await EmailService.sendPasswordChangedEmail(user.email);
 
             res.status(200).json({
@@ -100,7 +83,6 @@ class ResetPasswordController extends BaseController {
                 message: 'Your password has been reset successfully.'
             });
         } catch (error) {
-            console.error('Reset password error:', error);
             res.status(500).json({
                 success: false,
                 message: 'Error resetting password.',
