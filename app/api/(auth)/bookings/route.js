@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import BookingController from '@/app/lib/controllers/BookingController';
-import { auth } from '@/app/lib/auth';
+import requireAuth from '@/app/lib/auth/requireAuth';
 
 /**
  * Handles GET requests to /api/bookings
@@ -11,41 +11,42 @@ import { auth } from '@/app/lib/auth';
  * - Returns specific user's bookings if userId is provided
  * - Returns current user's bookings by default
  */
-export async function GET(request) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json(
-      { message: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
-
-  try {
-    const { searchParams } = new URL(request.url);
-    const facilityId = searchParams.get('facilityId');
-    const date = searchParams.get('date');
-    const userId = searchParams.get('userId');
-    
-    if (facilityId && date) {
-      const bookings = await BookingController.getFacilityBookings(facilityId, date);
-      return NextResponse.json(bookings);
-    }
-    
-    if (userId) {
-      const userBookings = await BookingController.getUserBookings(userId);
-      return NextResponse.json(userBookings);
-    }
-    
-    const userBookings = await BookingController.getUserBookings(session.user.id);
-    return NextResponse.json(userBookings);
-
-  } catch (error) {
-    return NextResponse.json(
-      { message: error.message },
-      { status: error.statusCode || 500 }
-    );
-  }
-}
+export const GET = async (request) => {
+    return requireAuth(request, async (user) => {
+        try {
+            const { searchParams } = new URL(request.url);
+            const facilityId = searchParams.get('facilityId');
+            const date = searchParams.get('date');
+            const userId = searchParams.get('userId');
+            
+            const res = {
+                status: (code) => ({
+                    json: (data) => NextResponse.json(data, { status: code })
+                }),
+                json: (data) => NextResponse.json(data)
+            };
+            
+            if (facilityId && date) {
+                const bookings = await BookingController.getFacilityBookings(facilityId, date);
+                return res.json(bookings);
+            }
+            
+            if (userId) {
+                const userBookings = await BookingController.getUserBookings(userId);
+                return res.json(userBookings);
+            }
+            
+            const userBookings = await BookingController.getUserBookings(user._id);
+            return res.json(userBookings);
+        } catch (error) {
+            console.error('Error in GET /api/bookings:', error);
+            return NextResponse.json(
+                { message: error.message || 'Internal server error' },
+                { status: error.statusCode || 500 }
+            );
+        }
+    });
+};
 
 /**
  * Handles POST requests to /api/bookings
@@ -53,30 +54,33 @@ export async function GET(request) {
  * @returns {Promise<NextResponse>} Response containing created booking or error message
  * @description Creates a new booking for the authenticated user
  */
-export async function POST(request) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json(
-      { message: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
-
-  try {
-    const data = await request.json();
-    const bookingData = {
-      ...data,
-      user: session.user.id,
-      status: 'pending',
-      paymentStatus: 'pending'
-    };
-    
-    const booking = await BookingController.store(bookingData);
-    return NextResponse.json(booking, { status: 201 });
-  } catch (error) {
-    return NextResponse.json(
-      { message: error.message },
-      { status: 400 }
-    );
-  }
-}
+export const POST = async (request) => {
+    return requireAuth(request, async (user) => {
+        try {
+            const data = await request.json();
+            
+            const res = {
+                status: (code) => ({
+                    json: (data) => NextResponse.json(data, { status: code })
+                }),
+                json: (data) => NextResponse.json(data)
+            };
+            
+            const bookingData = {
+                ...data,
+                user: user._id,
+                status: 'pending',
+                paymentStatus: 'pending'
+            };
+            
+            const booking = await BookingController.store(bookingData);
+            return res.status(201).json(booking);
+        } catch (error) {
+            console.error('Error creating booking:', error);
+            return NextResponse.json(
+                { message: error.message || 'Internal server error' },
+                { status: error.statusCode || 500 }
+            );
+        }
+    });
+};
