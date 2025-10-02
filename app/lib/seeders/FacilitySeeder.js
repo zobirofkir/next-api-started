@@ -8,7 +8,7 @@ class FacilitySeeder extends BaseSeeder {
       {
         name: 'Main Football Field',
         sport: 'football',
-        image: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
+        image: '/images/football-field-1.jpg',
         capacity: '22 players',
         price: 100,
         rating: 4.5,
@@ -18,7 +18,7 @@ class FacilitySeeder extends BaseSeeder {
       {
         name: 'Training Football Field',
         sport: 'football',
-        image: 'https://images.unsplash.com/photo-1552667466-07770ae110d0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
+        image: '/images/football-field-2.jpg',
         capacity: '20 players',
         price: 80,
         rating: 4.3,
@@ -30,7 +30,7 @@ class FacilitySeeder extends BaseSeeder {
       {
         name: 'Indoor Basketball Court',
         sport: 'basketball',
-        image: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
+        image: '/images/basketball-court-1.jpg',
         capacity: '10 players',
         price: 50,
         rating: 4.2,
@@ -40,7 +40,7 @@ class FacilitySeeder extends BaseSeeder {
       {
         name: 'Outdoor Basketball Court',
         sport: 'basketball',
-        image: 'https://images.unsplash.com/photo-1543357480-c60d400e2ad9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
+        image: '/images/basketball-court-2.jpg',
         capacity: '10 players',
         price: 40,
         rating: 4.0,
@@ -52,7 +52,7 @@ class FacilitySeeder extends BaseSeeder {
       {
         name: 'Clay Tennis Court',
         sport: 'tennis',
-        image: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
+        image: '/images/tennis-court-1.jpg',
         capacity: '4 players',
         price: 40,
         rating: 4.2,
@@ -62,7 +62,7 @@ class FacilitySeeder extends BaseSeeder {
       {
         name: 'Hard Court Tennis',
         sport: 'tennis',
-        image: 'https://images.unsplash.com/photo-1544298621-35c01eb000e3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
+        image: '/images/tennis-court-2.jpg',
         capacity: '4 players',
         price: 45,
         rating: 4.3,
@@ -74,7 +74,7 @@ class FacilitySeeder extends BaseSeeder {
       {
         name: 'Olympic Swimming Pool',
         sport: 'swimming',
-        image: 'https://images.unsplash.com/photo-1584119164246-292db8231aac?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
+        image: '/images/swimming-pool-1.jpg',
         capacity: '30 people',
         price: 35,
         rating: 4.7,
@@ -84,7 +84,7 @@ class FacilitySeeder extends BaseSeeder {
       {
         name: 'Training Pool',
         sport: 'swimming',
-        image: 'https://images.unsplash.com/photo-1575429198097-0414ec08e8cd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
+        image: '/images/swimming-pool-2.jpg',
         capacity: '20 people',
         price: 25,
         rating: 4.5,
@@ -96,7 +96,7 @@ class FacilitySeeder extends BaseSeeder {
       {
         name: 'Premium Gym',
         sport: 'gym',
-        image: 'https://images.unsplash.com/photo-1534438327276-14e6d8fbf7b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
+        image: '/images/gym-1.jpg',
         capacity: '20 people',
         price: 30,
         rating: 4.6,
@@ -106,7 +106,7 @@ class FacilitySeeder extends BaseSeeder {
       {
         name: 'Fitness Center',
         sport: 'gym',
-        image: 'https://images.unsplash.com/photo-1534438327276-14e6d8fbf7b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
+        image: '/images/gym-2.jpg',
         capacity: '15 people',
         price: 20,
         rating: 4.3,
