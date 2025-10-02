@@ -14,10 +14,10 @@ class BookingSeeder extends BaseSeeder {
    */
   static async run() {
     const facilities = await Facility.find({});
-    const users = await User.find({});
+    const adminUser = await User.findOne({ email: 'zobir@admin.com' });
 
-    if (facilities.length === 0 || users.length === 0) {
-      console.log('Please run FacilitySeeder and create some users first');
+    if (facilities.length === 0 || !adminUser) {
+      console.log('Please run FacilitySeeder and ensure the admin user exists');
       return [];
     }
 
@@ -35,7 +35,7 @@ class BookingSeeder extends BaseSeeder {
       
       for (let j = 0; j < bookingsPerDay; j++) {
         const facility = facilities[Math.floor(Math.random() * facilities.length)];
-        const user = users[Math.floor(Math.random() * users.length)];
+        const user = adminUser;
         
         const startHour = 9 + Math.floor(Math.random() * 12);
         const endHour = Math.min(21, startHour + 1 + Math.floor(Math.random() * 3));
