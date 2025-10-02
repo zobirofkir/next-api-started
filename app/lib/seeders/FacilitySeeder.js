@@ -52,7 +52,7 @@ class FacilitySeeder extends BaseSeeder {
       {
         name: 'Clay Tennis Court',
         sport: 'tennis',
-        image: '/images/tennis-court-1.jpg',
+        image: '/images/tennis-court-1.jpg', 
         capacity: '4 players',
         price: 40,
         rating: 4.2,
