@@ -1,6 +1,6 @@
+import FacilityResource from "../resources/FacilityResource";
 import BaseController from "./BaseController";
 import Facility from "@/app/lib/models/Facility";
-import FacilityResource from "@/app/lib/resources/FacilityResource";
 
 class FacilityController extends BaseController {
     /**

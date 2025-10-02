@@ -1,6 +1,6 @@
+import BookingResource from "../resources/BookingResource";
 import BaseController from "./BaseController";
 import Booking from "@/app/lib/models/Booking";
-import BookingResource from "@/app/lib/resources/BookingResource";
 
 class BookingController extends BaseController {
     /**
