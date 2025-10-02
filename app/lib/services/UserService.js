@@ -7,7 +7,7 @@ export default class UserService {
      * @param {string} email - User's email
      * @returns {Promise<Object>} User document or null if not found
      */
-    static async findUserByEmail(email) {
+    static async findUserByEmail(email) { 
         await connectDB();
         return User.findOne({ email });
     }
