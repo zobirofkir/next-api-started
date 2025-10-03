@@ -1,4 +1,4 @@
-import BaseController from "./BaseController";
+import BaseController  from "./BaseController";
 import User from "@/app/models/User";
 import ResetPasswordRequest from "@/app/lib/requests/ResetPasswordRequest";
 import ResetPasswordResource from "@/app/lib/resources/ResetPasswordResource";
@@ -12,7 +12,9 @@ class ResetPasswordController extends BaseController {
         return await ResetPasswordController.withConnection(async () => {
             const { email } = req.body;
             
-            // Find user by email
+            /**
+             * Find user by email
+             */
             const user = await User.findOne({ email });
             if (!user) {
                 return { 
@@ -21,16 +23,22 @@ class ResetPasswordController extends BaseController {
                 };
             }
 
-            // Generate reset token
+            /**
+             * Generate reset token
+             */
             const resetToken = uuidv4();
-            const resetTokenExpiry = Date.now() + 3600000; // 1 hour from now
+            const resetTokenExpiry = Date.now() + 3600000; 
 
-            // Save token to user
+            /**
+             * Save token to user
+             */
             user.resetPasswordToken = resetToken;
             user.resetPasswordExpires = resetTokenExpiry;
             await user.save();
 
-            // Send email with reset link
+            /**
+             * Send email with reset link
+             */
             await this.sendResetEmail(user.email, resetToken);
 
             return { 
@@ -54,7 +62,9 @@ class ResetPasswordController extends BaseController {
 
             const { email, token, password } = request.cleaned;
 
-            // Find user by email and token
+            /**
+             * Find user by email and token
+             */
             const user = await User.findOne({
                 email,
                 resetPasswordToken: token,
@@ -68,13 +78,17 @@ class ResetPasswordController extends BaseController {
                 };
             }
 
-            // Update password
+            /**
+             * Update password
+             */
             user.password = await hash(password, 10);
             user.resetPasswordToken = undefined;
             user.resetPasswordExpires = undefined;
             await user.save();
 
-            // Generate new JWT token
+            /**
+             * Generate new JWT token
+             */
             const authToken = sign(
                 { userId: user._id, email: user.email },
                 process.env.JWT_SECRET,
@@ -92,18 +106,22 @@ class ResetPasswordController extends BaseController {
     async sendResetEmail(email, token) {
         const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
         
-        // Create transporter using environment variables
+        /**
+         * Create transporter using environment variables
+         */
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
             port: process.env.SMTP_PORT,
-            secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+            secure: process.env.SMTP_SECURE === 'true', 
             auth: {
                 user: process.env.SMTP_USERNAME,
                 pass: process.env.SMTP_PASSWORD
             }
         });
 
-        // Send mail with defined transport object
+        /**
+         * Send mail with defined transport object
+         */
         await transporter.sendMail({
             from: `"${process.env.MAIL_FROM_NAME}" <${process.env.MAIL_FROM_ADDRESS}>`,
             to: email,
