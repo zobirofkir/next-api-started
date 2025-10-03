@@ -104,7 +104,7 @@ class ResetPasswordController extends BaseController {
     }
 
     async sendResetEmail(email, token) {
-        const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
+        const resetUrl = `${process.env.FRONTEND_URL}/auth/update-password?token=${token}&email=${encodeURIComponent(email)}`;
         
         /**
          * Create transporter using environment variables
