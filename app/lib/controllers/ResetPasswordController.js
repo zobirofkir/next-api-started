@@ -1,11 +1,11 @@
 import BaseController  from "./BaseController";
-import User from "@/app/models/User";
 import ResetPasswordRequest from "@/app/lib/requests/ResetPasswordRequest";
 import ResetPasswordResource from "@/app/lib/resources/ResetPasswordResource";
 import { hash } from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import nodemailer from 'nodemailer';
+import User from "../models/User";
 
 class ResetPasswordController extends BaseController {
     async sendResetLink(req) {
