@@ -1,6 +1,8 @@
 import BaseController from "./BaseController";
-import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { auth, googleProvider } from "../firebase/config";
+import { getAuth } from "firebase-admin/auth";
+import { adminApp } from "../firebase/admin";
+import mongoose from 'mongoose';
+import jwt from 'jsonwebtoken';
 import User from "../models/User";
 import AuthGmailResource from "../resources/AuthGmailResource";
 
@@ -17,6 +19,20 @@ class AuthGmailController extends BaseController {
     constructor() {
         super();
         this.resource = AuthGmailResource;
+        this.jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+        this.jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
+    }
+
+    /**
+     * Sign JWT token
+     * @param {Object} payload - The payload to sign
+     * @returns {String} Signed JWT token
+     */
+    jwtSign(payload) {
+        if (!this.jwtSecret) {
+            throw new Error('JWT_SECRET is not defined in environment variables');
+        }
+        return jwt.sign(payload, this.jwtSecret, { expiresIn: this.jwtExpiresIn });
     }
 
     /**
@@ -49,49 +65,146 @@ class AuthGmailController extends BaseController {
      */
     async login(req, res) {
         try {
-            const result = await signInWithPopup(auth, googleProvider);
-            const user = result.user;
+            const { idToken } = req.body;
             
-            let dbUser = await User.findOne({ email: user.email });
-            
-            if (!dbUser) {
-                dbUser = new User({
-                    name: user.displayName,
-                    email: user.email,
-                    photoURL: user.photoURL,
-                    firebaseUid: user.uid,
-                    provider: 'google'
-                });
-                await dbUser.save();
-            } else {
-                dbUser.photoURL = user.photoURL;
-                dbUser.firebaseUid = user.uid;
-                await dbUser.save();
+            if (!idToken) {
+                return this.response.error(
+                    res,
+                    { error: 'ID token is required' },
+                    'Authentication failed',
+                    400
+                );
             }
 
-            const token = this.jwtSign({
-                id: dbUser._id,
-                email: dbUser.email,
-                name: dbUser.name
-            });
+            // Verify the Firebase ID token
+            const decodedToken = await getAuth(adminApp).verifyIdToken(idToken);
+            const { uid, email, name, picture } = decodedToken;
 
-            return this.response.success(
-                res,
-                {
-                    user: new this.resource(dbUser).toArray(),
-                    token
-                },
-                'Login successful'
-            );
+            if (!email) {
+                throw new Error('Email not found in token');
+            }
+            
+            // Ensure database connection is established
+            let dbConnection;
+            try {
+                dbConnection = await import('../connection/db').then(module => module.default());
+                await dbConnection; // Ensure the connection is fully established
+            } catch (dbError) {
+                console.error('Database connection error:', dbError);
+                throw new Error('Unable to connect to the database. Please try again later.');
+            }
+
+            // Use a transaction to ensure data consistency
+            const session = await mongoose.startSession();
+            session.startTransaction();
+            
+            try {
+                let dbUser = await User.findOne({ email }).session(session);
+                
+                if (!dbUser) {
+                    dbUser = new User({
+                        name: name || email.split('@')[0],
+                        email,
+                        photoURL: picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || email.split('@')[0])}&background=random`,
+                        firebaseUid: uid,
+                        provider: 'google',
+                        emailVerified: true
+                    });
+                    await dbUser.save({ session });
+                } else {
+                    // Update existing user's information
+                    dbUser.photoURL = picture || dbUser.photoURL;
+                    dbUser.firebaseUid = uid;
+                    dbUser.lastLogin = new Date();
+                    await dbUser.save({ session });
+                }
+                
+                const token = this.jwtSign({
+                    id: dbUser._id,
+                    email: dbUser.email,
+                    name: dbUser.name
+                });
+
+                // Commit the transaction before sending the response
+                await session.commitTransaction();
+                
+                // End the session after successful commit
+                session.endSession();
+
+                // Return the success response
+                if (res && typeof res.json === 'function') {
+                    return res.status(200).json({
+                        success: true,
+                        message: 'Login successful',
+                        data: {
+                            user: new this.resource(dbUser).toArray(),
+                            token
+                        }
+                    });
+                }
+                
+                return this.response?.success?.(
+                    res,
+                    {
+                        user: new this.resource(dbUser).toArray(),
+                        token
+                    },
+                    'Login successful'
+                ) || {
+                    success: true,
+                    message: 'Login successful',
+                    data: {
+                        user: new this.resource(dbUser).toArray(),
+                        token
+                    }
+                };
+                
+            } catch (error) {
+                // Only abort if the transaction is still active
+                if (session.inTransaction()) {
+                    await session.abortTransaction();
+                }
+                throw error;
+            } finally {
+                // End the session if it's still active
+                if (session.inTransaction()) {
+                    await session.abortTransaction();
+                }
+                if (session.id) {
+                    session.endSession().catch(e => console.error('Error ending session:', e));
+                }
+            }
             
         } catch (error) {
             console.error('Google sign in error:', error);
-            return this.response.error(
+            const statusCode = error.statusCode || 500;
+            const errorMessage = error.message || 'Authentication failed';
+            
+            // For Next.js API routes, we'll return the response directly
+            if (res && typeof res.json === 'function') {
+                return res.status(statusCode).json({
+                    success: false,
+                    message: errorMessage,
+                    error: errorMessage,
+                    code: error.code
+                });
+            }
+            
+            // Fallback to the base controller's error response
+            return this.response?.error?.(
                 res,
-                { error: error.message },
-                'Google sign in failed',
-                400
-            );
+                { 
+                    error: errorMessage,
+                    code: error.code
+                },
+                errorMessage,
+                statusCode
+            ) || {
+                success: false,
+                message: errorMessage,
+                error: errorMessage,
+                code: error.code
+            };
         }
     }
 } 
