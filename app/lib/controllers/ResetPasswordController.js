@@ -111,11 +111,11 @@ class ResetPasswordController extends BaseController {
          */
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
-            port: process.env.SMTP_PORT,
-            secure: process.env.SMTP_SECURE === 'true', 
+            port: parseInt(process.env.SMTP_PORT, 10),
+            secure: process.env.SMTP_SECURE === 'true',
             auth: {
-                user: process.env.SMTP_USERNAME,
-                pass: process.env.SMTP_PASSWORD
+                user: process.env.EMAIL_USERNAME,
+                pass: process.env.EMAIL_PASSWORD
             }
         });
 
@@ -123,7 +123,7 @@ class ResetPasswordController extends BaseController {
          * Send mail with defined transport object
          */
         await transporter.sendMail({
-            from: `"${process.env.MAIL_FROM_NAME}" <${process.env.MAIL_FROM_ADDRESS}>`,
+            from: process.env.EMAIL_FROM,
             to: email,
             subject: 'Password Reset Request',
             html: `
