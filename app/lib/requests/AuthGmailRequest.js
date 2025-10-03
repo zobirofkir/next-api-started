@@ -1,6 +1,6 @@
 import BaseRequest from './BaseRequest.js';
 
-export default class AuthGmailResource extends BaseRequest {
+export default class AuthGmailRequest extends BaseRequest {
   rules() {
     return {
         //
