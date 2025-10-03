@@ -102,28 +102,43 @@ class AuthGmailController extends BaseController {
                 let dbUser = await User.findOne({ email }).session(session);
                 
                 if (!dbUser) {
-                    dbUser = new User({
+                    // Only include fields that exist in the User model
+                    const userData = {
                         name: name || email.split('@')[0],
                         email,
                         photoURL: picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || email.split('@')[0])}&background=random`,
                         firebaseUid: uid,
-                        provider: 'google',
-                        emailVerified: true
-                    });
+                        provider: 'google'
+                    };
+                    
+                    dbUser = new User(userData);
                     await dbUser.save({ session });
                 } else {
-                    // Update existing user's information
-                    dbUser.photoURL = picture || dbUser.photoURL;
-                    dbUser.firebaseUid = uid;
-                    dbUser.lastLogin = new Date();
+                    // Update only the fields that exist in the User model
+                    if (picture) dbUser.photoURL = picture;
+                    if (uid) dbUser.firebaseUid = uid;
+                    dbUser.provider = 'google';
+                    
                     await dbUser.save({ session });
                 }
                 
+                // Generate JWT token with user data
                 const token = this.jwtSign({
                     id: dbUser._id,
                     email: dbUser.email,
                     name: dbUser.name
                 });
+
+                // Prepare user data for response using only the fields that exist in the model
+                const userData = {
+                    id: dbUser._id,
+                    name: dbUser.name,
+                    email: dbUser.email,
+                    photoURL: dbUser.photoURL,
+                    provider: dbUser.provider || 'google',
+                    createdAt: dbUser.createdAt,
+                    updatedAt: dbUser.updatedAt
+                };
 
                 // Commit the transaction before sending the response
                 await session.commitTransaction();
@@ -137,7 +152,7 @@ class AuthGmailController extends BaseController {
                         success: true,
                         message: 'Login successful',
                         data: {
-                            user: new this.resource(dbUser).toArray(),
+                            user: userData,
                             token
                         }
                     });
