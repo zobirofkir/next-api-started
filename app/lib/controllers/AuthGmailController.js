@@ -1,6 +1,6 @@
 import BaseController from "./BaseController";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { auth, googleProvider } from "../../firebase/config";
+import { auth, googleProvider } from "../firebase/config";
 import User from "../models/User";
 import AuthGmailResource from "../resources/AuthGmailResource";
 

@@ -1,6 +1,6 @@
+import AuthGmailController from '@/app/lib/controllers/AuthGmailController';
+import AuthGmailRequest from '@/app/lib/requests/AuthGmailRequest';
 import { NextResponse } from 'next/server';
-import AuthGmailRequest from '@/lib/requests/AuthGmailRequest';
-import AuthGmailController from '@/lib/controllers/AuthGmailController';
 
 /**
  * @module routes/auth/gmail
