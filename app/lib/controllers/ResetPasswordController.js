@@ -26,20 +26,20 @@ class ResetPasswordController extends BaseController {
             /**
              * Generate reset token
              */
-            const resetToken = uuidv4();
+            const passwordResetToken = uuidv4();
             const resetTokenExpiry = Date.now() + 3600000; 
 
             /**
              * Save token to user
              */
-            user.resetPasswordToken = resetToken;
+            user.resetPasswordToken = passwordResetToken;
             user.resetPasswordExpires = resetTokenExpiry;
             await user.save();
 
             /**
              * Send email with reset link
              */
-            await this.sendResetEmail(user.email, resetToken);
+            await this.sendResetEmail(user.email, passwordResetToken);
 
             return { 
                 success: true, 
@@ -80,31 +80,54 @@ class ResetPasswordController extends BaseController {
 
             /**
              * Update password
+             * Using findOneAndUpdate to ensure the pre-save hook is triggered
              */
-            user.password = await hash(password, 10);
-            user.resetPasswordToken = undefined;
-            user.resetPasswordExpires = undefined;
-            await user.save();
+            const hashedPassword = await hash(password, 10);
+            const updatedUser = await User.findOneAndUpdate(
+                { _id: user._id },
+                { 
+                    password: hashedPassword,
+                    resetPasswordToken: undefined,
+                    resetPasswordExpires: undefined 
+                },
+                { new: true }
+            );
+            
+            if (!updatedUser) {
+                return { 
+                    success: false, 
+                    message: 'Failed to update password' 
+                };
+            }
 
             /**
-             * Generate new JWT token
+             * Generate new JWT token using the same logic as AuthService
              */
             const authToken = sign(
-                { userId: user._id, email: user.email },
+                { userId: user._id },
                 process.env.JWT_SECRET,
-                { expiresIn: '24h' }
+                { expiresIn: '7d' }
             );
+
+            // Convert user to plain object and remove sensitive data
+            const userObject = user.toObject();
+            delete userObject.password;
+            delete userObject.resetPasswordToken;
+            delete userObject.resetPasswordExpires;
 
             return { 
                 success: true, 
-                data: new ResetPasswordResource(user).toArray(),
-                token: authToken
+                resource: {
+                    token: authToken,
+                    user: new ResetPasswordResource(userObject).toArray()
+                },
+                message: 'Password has been reset successfully'
             };
         });
     }
 
-    async sendResetEmail(email, token) {
-        const resetUrl = `${process.env.FRONTEND_URL}/auth/update-password?token=${token}&email=${encodeURIComponent(email)}`;
+    async sendResetEmail(email, passwordResetToken) {
+        const resetUrl = `${process.env.FRONTEND_URL}/auth/update-password?token=${passwordResetToken}&email=${encodeURIComponent(email)}`;
         
         /**
          * Create transporter using environment variables
