@@ -42,3 +42,4 @@ next-env.d.ts
 
 # docker
 .env.local
+firebase-private-key.json
