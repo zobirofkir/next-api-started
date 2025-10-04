@@ -8,9 +8,9 @@ import { RateLimiterMemory } from 'rate-limiter-flexible';
  * @property {number} blockDuration - Duration in seconds to block after all points are consumed
  */
 const rateLimiterOptions = {
-  points: import.meta.env.RATE_LIMITER_POINTS,
-  duration: import.meta.env.RATE_LIMITER_DURATION,
-  blockDuration: import.meta.env.RATE_LIMITER_BLOCK_DURATION,
+  points: parseInt(process.env.RATE_LIMITER_POINTS, 10) || 5,
+  duration: parseInt(process.env.RATE_LIMITER_DURATION, 10) || 900,
+  blockDuration: parseInt(process.env.RATE_LIMITER_BLOCK_DURATION, 10) || 900,
 };
 
 const rateLimiter = new RateLimiterMemory(rateLimiterOptions);
