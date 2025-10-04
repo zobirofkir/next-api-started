@@ -30,7 +30,7 @@ export default async function requireAuth(request, handler) {
         if (isRevoked) {
             return NextResponse.json({ error: 'Token revoked' }, { status: 401 });
         }
-        const user = await User.findById(payload.userId);
+        const user = await User.findById(payload.id);
         if (!user) {
             return NextResponse.json({ error: 'User not found' }, { status: 401 });
         }
