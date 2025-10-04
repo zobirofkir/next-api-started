@@ -50,9 +50,8 @@ export default class AuthService {
       throw error;
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
     const user = await this.withConnection(() =>
-      User.create({ name, email, password: hashedPassword })
+      User.create({ name, email, password })
     );
 
     const token = this.generateToken(user._id);
@@ -95,15 +94,17 @@ export default class AuthService {
   }
 
   async loginUser(email, password) {
-    // Sanitize email input
+    console.log('Login attempt for email:', email);
+    // Sanitize email input only, don't sanitize password to prevent double hashing
     const sanitizedEmail = sanitizeEmail(email);
-    const sanitizedPassword = sanitizePassword(password);
+    console.log('Sanitized email:', sanitizedEmail);
 
     const user = await this.withConnection(() =>
       User.findOne({ email: sanitizedEmail }).select('+password')
     );
 
     if (!user) {
+      console.log('No user found with email:', sanitizedEmail);
       const error = new Error('Authentication failed');
       error.status = 401;
       error.details = {
@@ -114,15 +115,28 @@ export default class AuthService {
       throw error;
     }
 
-    const isPasswordValid = await bcrypt.compare(sanitizedPassword, user.password);
-    if (!isPasswordValid) {
-      const error = new Error('Authentication failed');
-      error.status = 401;
-      error.details = {
-        success: false,
-        error: 'Authentication failed',
-        message: 'Incorrect password. Please try again.'
-      };
+    console.log('User found, comparing password...');
+    console.log('Input password length:', password ? password.length : 'undefined');
+    console.log('Stored password hash length:', user.password ? user.password.length : 'undefined');
+    console.log('Stored password starts with:', user.password ? user.password.substring(0, 10) + '...' : 'undefined');
+    
+    try {
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      console.log('Password comparison result:', isPasswordValid);
+      if (!isPasswordValid) {
+        console.log('Password comparison failed');
+        const error = new Error('Authentication failed');
+        error.status = 401;
+        error.details = {
+          success: false,
+          error: 'Authentication failed',
+          message: 'Incorrect password. Please try again.'
+        };
+        throw error;
+      }
+
+    } catch (error) {
+      console.error('Error during password comparison:', error);
       throw error;
     }
 
@@ -157,7 +171,10 @@ export default class AuthService {
    */
   generateToken(userId) {
     return jwt.sign(
-      { userId },
+      { 
+        userId, 
+        id: userId // Add both userId and id for backward compatibility 
+      },
       this.JWT_SECRET,
       { expiresIn: '7d' }
     );
